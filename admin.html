@@ -1347,29 +1347,29 @@
       let rows = [];
       let lastError = null;
 
-      const direct = await supabaseClient
-        .from('bookings')
-        .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at, review_left, source')
-        .order('booking_date', { ascending: true })
-        .order('booking_time', { ascending: true });
-
-      if (!direct.error) {
-        rows = direct.data || [];
-        lastError = null;
-      } else {
-        lastError = direct.error;
+      const adminRpcNames = ['admin_get_bookings', 'get_admin_bookings', 'get_booked_slots_admin'];
+      for (const rpcName of adminRpcNames) {
+        const rpcResult = await supabaseClient.rpc(rpcName);
+        if (!rpcResult.error) {
+          rows = rpcResult.data || [];
+          lastError = null;
+          break;
+        }
+        lastError = rpcResult.error;
       }
 
       if (!rows.length) {
-        const adminRpcNames = ['admin_get_bookings', 'get_admin_bookings', 'get_booked_slots_admin'];
-        for (const rpcName of adminRpcNames) {
-          const rpcResult = await supabaseClient.rpc(rpcName);
-          if (!rpcResult.error) {
-            rows = rpcResult.data || [];
-            lastError = null;
-            break;
-          }
-          lastError = rpcResult.error;
+        const direct = await supabaseClient
+          .from('bookings')
+          .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at, review_left, source')
+          .order('booking_date', { ascending: true })
+          .order('booking_time', { ascending: true });
+
+        if (!direct.error) {
+          rows = direct.data || [];
+          lastError = null;
+        } else {
+          lastError = direct.error;
         }
       }
 
@@ -1580,13 +1580,31 @@
         }
       }
 
-      const { data, error } = await supabaseClient.rpc('admin_create_schedule_block', {
+      let data = null;
+      let error = null;
+      const blockParams = {
         p_block_date: blockDate,
         p_start_time: mode === 'day' ? null : startTime,
         p_end_time: mode === 'day' ? null : endTime,
         p_is_full_day: mode === 'day',
         p_reason: reason || null
-      });
+      };
+
+      const rpcVariants = [
+        ['admin_create_schedule_block', blockParams],
+        ['create_schedule_block', blockParams],
+        ['save_schedule_block', blockParams]
+      ];
+
+      for (const [rpcName, params] of rpcVariants) {
+        const rpcResult = await supabaseClient.rpc(rpcName, params);
+        if (!rpcResult.error) {
+          data = rpcResult.data;
+          error = null;
+          break;
+        }
+        error = rpcResult.error;
+      }
 
       if (error) {
         console.error(error);
@@ -1603,9 +1621,24 @@
     }
 
     async function deleteBlock(blockId) {
-      const { data, error } = await supabaseClient.rpc('admin_delete_schedule_block', {
-        p_block_id: blockId
-      });
+      let data = null;
+      let error = null;
+      const rpcVariants = [
+        ['admin_delete_schedule_block', { p_block_id: blockId }],
+        ['delete_schedule_block', { p_block_id: blockId }],
+        ['remove_schedule_block', { p_block_id: blockId }]
+      ];
+
+      for (const [rpcName, params] of rpcVariants) {
+        const rpcResult = await supabaseClient.rpc(rpcName, params);
+        if (!rpcResult.error) {
+          data = rpcResult.data;
+          error = null;
+          break;
+        }
+        error = rpcResult.error;
+      }
+
       if (error) {
         console.error(error);
         showToast(error.message || 'Не удалось удалить блокировку.', 'error');
