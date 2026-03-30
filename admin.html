@@ -1921,7 +1921,7 @@
           : item
       );
       renderDashboard();
-      showToast('Запись отменена. Время снова стало свободным для клиентов.', 'success');
+      showToast('Запись отменена и перенесена в историю отменённых. Время снова стало свободным для клиентов.', 'success');
       return true;
     }
 
@@ -2126,7 +2126,7 @@
         .forEach(item => rows.push([
           item.date,
           item.time,
-          item.is_confirmed ? 'confirmed' : 'pending',
+          item.status || (item.is_confirmed ? 'confirmed' : 'pending'),
           item.client_name || '',
           item.client_phone || '',
           item.service || ''
@@ -2249,6 +2249,7 @@
       renderList(refs.upcomingList, upcoming.map(createBookingMarkup).join(''), 'Будущих записей пока нет.');
       renderList(refs.pendingReviewsList, state.pendingReviews.map(item => createReviewMarkup(item, 'pending')).join(''), 'Сейчас нет отзывов, ожидающих проверки.');
       renderList(refs.publishedReviewsList, state.reviews.slice(0, 12).map(item => createReviewMarkup(item, 'approved')).join(''), 'Опубликованных отзывов пока нет.');
+      renderCancelledBookings();
       renderBlocks();
 
       document.querySelectorAll('[data-confirm-booking]').forEach(btn => {
