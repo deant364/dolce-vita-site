@@ -881,6 +881,7 @@
             <a class="nav-link" href="#upcoming">Ближайшие записи</a>
             <a class="nav-link" href="#pending-reviews">Отзывы на проверке</a>
             <a class="nav-link" href="#published-reviews">Опубликованные отзывы</a>
+            <a class="nav-link" href="#cancelled-history">Отменённые записи</a>
             <a class="nav-link" href="#help">Подсказки</a>
           </nav>
         </aside>
@@ -1062,6 +1063,24 @@
             <div class="list" id="upcomingList"></div>
           </section>
 
+
+          <section class="card section-card" id="cancelled-history">
+            <div class="section-head">
+              <div>
+                <span class="badge">История отмен</span>
+                <h2>Отменённые записи</h2>
+                <p>Здесь хранятся записи со статусом cancelled. Их можно удалить из истории по одной или очистить весь список сразу.</p>
+              </div>
+              <div class="toolbar">
+                <button class="btn btn-danger" id="clearCancelledBtn" type="button">Очистить всю историю</button>
+              </div>
+            </div>
+            <div class="filters">
+              <span class="chip" id="cancelledCountChip">0 в истории</span>
+            </div>
+            <div class="list" id="cancelledBookingsList"></div>
+          </section>
+
           <section class="card section-card" id="pending-reviews">
             <div class="section-head">
               <div>
@@ -1175,6 +1194,9 @@
       calendarMonthLabel: document.getElementById('calendarMonthLabel'),
       calendarMiniGrid: document.getElementById('calendarMiniGrid'),
       upcomingCountChip: document.getElementById('upcomingCountChip'),
+      cancelledCountChip: document.getElementById('cancelledCountChip'),
+      cancelledBookingsList: document.getElementById('cancelledBookingsList'),
+      clearCancelledBtn: document.getElementById('clearCancelledBtn'),
       pendingCountChip: document.getElementById('pendingCountChip'),
       logoutTopBtn: document.getElementById('logoutTopBtn')
     };
@@ -1296,6 +1318,17 @@
         status: approved ? 'approved' : 'pending',
         is_approved: approved
       };
+    }
+
+
+    function getCancelledBookings() {
+      return state.bookings
+        .filter(item => String(item.status || '').toLowerCase() === 'cancelled')
+        .sort((a, b) => {
+          const av = `${a.date || ''} ${a.time || ''}`;
+          const bv = `${b.date || ''} ${b.time || ''}`;
+          return bv.localeCompare(av);
+        });
     }
 
     function showToast(message, type='info') {
@@ -1434,6 +1467,56 @@
 
       console.warn('LOAD BLOCKS WARNING:', direct.error || rpcResult.error);
       state.blocks = [];
+    }
+
+
+    function renderCancelledBookings() {
+      if (!refs.cancelledBookingsList || !refs.cancelledCountChip) return;
+
+      const cancelled = getCancelledBookings();
+      refs.cancelledCountChip.textContent = `${cancelled.length} в истории`;
+
+      if (!cancelled.length) {
+        refs.cancelledBookingsList.innerHTML = '<div class="empty">История отменённых записей пока пустая.</div>';
+        return;
+      }
+
+      refs.cancelledBookingsList.innerHTML = cancelled.map(item => `
+        <div class="item">
+          <strong>${escapeHtml(formatHumanDate(item.date))} • ${escapeHtml(item.time || 'без времени')}</strong>
+          <div class="meta-grid">
+            <span><strong>Клиент:</strong> ${escapeHtml(item.client_name || 'Без имени')}</span>
+            <span><strong>Телефон:</strong> ${escapeHtml(formatPhone(item.client_phone || ''))}</span>
+            <span><strong>Услуга:</strong> ${escapeHtml(item.service || 'не указана')}</span>
+          </div>
+          <div class="comment-bubble">
+            <strong>Комментарий</strong>
+            <span>${item.comment ? escapeHtml(item.comment) : 'Комментарий не указан'}</span>
+          </div>
+          <div class="pill-row">
+            <span class="pill">Статус: отменена</span>
+            ${item.created_at ? `<span class="pill">Создана: ${escapeHtml(formatDateTime(item.created_at))}</span>` : ''}
+          </div>
+          <div class="item-actions">
+            <button class="btn btn-danger" type="button" data-purge-booking="${escapeHtml(String(item.id))}">Удалить из истории</button>
+          </div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('[data-purge-booking]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-purge-booking');
+          if (!confirm('Удалить эту отменённую запись из истории навсегда?')) return;
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Удаляю...';
+          const ok = await purgeCancelledBooking(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
     }
 
     function renderBlocks() {
@@ -1787,6 +1870,92 @@
       return true;
     }
 
+
+
+    async function purgeCancelledBooking(bookingId) {
+      const normalizedId = String(bookingId || '').trim();
+      if (!normalizedId) return false;
+
+      let removed = false;
+
+      const directDelete = await supabaseClient
+        .from('bookings')
+        .delete()
+        .eq('id', normalizedId)
+        .eq('status', 'cancelled');
+
+      if (!directDelete.error) {
+        removed = true;
+      } else {
+        const rpcVariants = [
+          ['purge_cancelled_booking', { p_booking_id: normalizedId }],
+          ['purge_cancelled_booking', { booking_id: normalizedId }],
+          ['admin_purge_cancelled_booking', { p_booking_id: normalizedId }],
+          ['admin_purge_cancelled_booking', { booking_id: normalizedId }]
+        ];
+
+        for (const [rpcName, params] of rpcVariants) {
+          const rpcResult = await supabaseClient.rpc(rpcName, params);
+          if (!rpcResult.error) {
+            removed = true;
+            break;
+          }
+        }
+      }
+
+      if (!removed) {
+        showToast('Не удалось удалить запись из истории. Проверь SQL-патч в Supabase.', 'error');
+        return false;
+      }
+
+      state.bookings = state.bookings.filter(item => String(item.id) !== normalizedId);
+      renderDashboard();
+      showToast('Запись удалена из истории.', 'success');
+      return true;
+    }
+
+    async function purgeAllCancelledBookings() {
+      const cancelledIds = getCancelledBookings().map(item => String(item.id));
+      if (!cancelledIds.length) {
+        showToast('История отменённых уже пустая.', 'info');
+        return false;
+      }
+
+      let removed = false;
+
+      const directDelete = await supabaseClient
+        .from('bookings')
+        .delete()
+        .eq('status', 'cancelled');
+
+      if (!directDelete.error) {
+        removed = true;
+      } else {
+        const rpcVariants = [
+          ['purge_all_cancelled_bookings', {}],
+          ['admin_purge_all_cancelled_bookings', {}],
+          ['clear_cancelled_bookings_history', {}]
+        ];
+
+        for (const [rpcName, params] of rpcVariants) {
+          const rpcResult = await supabaseClient.rpc(rpcName, params);
+          if (!rpcResult.error) {
+            removed = true;
+            break;
+          }
+        }
+      }
+
+      if (!removed) {
+        showToast('Не удалось очистить историю отменённых. Проверь SQL-патч в Supabase.', 'error');
+        return false;
+      }
+
+      state.bookings = state.bookings.filter(item => String(item.status || '').toLowerCase() !== 'cancelled');
+      renderDashboard();
+      showToast('История отменённых записей очищена.', 'success');
+      return true;
+    }
 
     function createBookingMarkup(item) {
       const service = item.service ? `<small><strong>Услуга:</strong> ${escapeHtml(item.service)}</small>` : '<small><strong>Услуга:</strong> не указана</small>';
