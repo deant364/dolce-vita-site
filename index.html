@@ -2210,12 +2210,29 @@ nav.top-nav a.active {
       min-height: 48px;
       padding: 12px 14px;
       font-size: 14px;
-      touch-action: manipulation;
     }
-    .mobile-cta-bar.is-hidden {
-      opacity: 0;
+    .floating-actions {
       pointer-events: none;
-      transform: translateY(calc(100% + 16px));
+    }
+    .floating-actions > * {
+      pointer-events: auto;
+    }
+    .mobile-cta-bar {
+      z-index: 95;
+      transition: opacity .2s ease, transform .2s ease, visibility .2s ease;
+    }
+    body.modal-open .mobile-cta-bar {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(16px);
+    }
+    body.modal-open .floating-actions {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(16px);
+      transition: opacity .2s ease, transform .2s ease, visibility .2s ease;
     }
     @media (max-width: 900px) {
       .quick-contact-strip,
@@ -4605,14 +4622,6 @@ nav.top-nav a {
       refs.bookingSummary.innerHTML = `<strong>Выбранный слот:</strong><br>${formatHumanDate(state.selectedDate)} • ${state.selectedTime}${durationText}`;
     }
 
-    function syncMobileOverlayState() {
-      const mobileCtaBar = document.getElementById('mobileCtaBar');
-      const floatingActions = document.getElementById('floatingActions');
-      const modalIsOpen = refs.bookingModal.classList.contains('open') || refs.contactModal.classList.contains('open');
-      mobileCtaBar?.classList.toggle('is-hidden', modalIsOpen);
-      floatingActions?.classList.toggle('is-hidden', modalIsOpen);
-    }
-
     function openModal() {
       const serviceField = document.getElementById('serviceType');
       if (serviceField && state.preselectedService) {
@@ -4621,26 +4630,25 @@ nav.top-nav a {
       updateBookingSummary();
       refs.bookingModal.classList.add('open');
       document.body.style.overflow = 'hidden';
-      syncMobileOverlayState();
     }
 
     function closeModal() {
       refs.bookingModal.classList.remove('open');
-      document.body.style.overflow = refs.contactModal.classList.contains('open') ? 'hidden' : '';
-      syncMobileOverlayState();
+      if (!refs.contactModal.classList.contains('open')) {
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+      }
     }
 
     function openContactModal() {
       refs.contactModal.classList.add('open');
       closeFloatingMenu();
       document.body.style.overflow = 'hidden';
-      syncMobileOverlayState();
     }
 
     function closeContactModal() {
       refs.contactModal.classList.remove('open');
       document.body.style.overflow = refs.bookingModal.classList.contains('open') ? 'hidden' : '';
-      syncMobileOverlayState();
     }
 
     function toggleFloatingMenu(force) {
@@ -5015,7 +5023,6 @@ nav.top-nav a {
 
     renderConfigContent();
     syncCustomServiceState();
-    syncMobileOverlayState();
     updateViewButtons();
     switchViews();
     render();
