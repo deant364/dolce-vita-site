@@ -1609,7 +1609,7 @@
 
     function bookingsForDate(dateString) {
       return state.bookings
-        .filter(item => item.date === dateString)
+        .filter(item => item.date === dateString && item.status !== 'cancelled')
         .sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
     }
 
@@ -1763,9 +1763,13 @@
         return false;
       }
 
-      state.bookings = state.bookings.filter(item => String(item.id) !== normalizedId);
+      state.bookings = state.bookings.map(item =>
+        String(item.id) === normalizedId
+          ? mapBooking({ ...item, status: 'cancelled', is_confirmed: false, confirmed_at: null })
+          : item
+      );
       renderDashboard();
-      showToast('Запись удалена. Теперь это время снова станет свободным для записи.', 'success');
+      showToast('Запись отменена. Время снова стало свободным для клиентов.', 'success');
       return true;
     }
 
@@ -1833,7 +1837,7 @@
           <small>${statusHint}</small>
           <div class="item-actions">
             ${confirmButton}
-            <button class="btn btn-danger" type="button" data-delete-booking="${escapeHtml(item.id)}">Удалить запись</button>
+            <button class="btn btn-danger" type="button" data-delete-booking="${escapeHtml(item.id)}">Отменить запись</button>
           </div>
         </div>
       `;
@@ -1902,6 +1906,7 @@
     function getFilteredBookings() {
       const search = state.filters.search.trim().toLowerCase();
       return state.bookings.filter(item => {
+        if (item.status === 'cancelled') return false;
         if (state.filters.dateFrom && item.date < state.filters.dateFrom) return false;
         if (state.filters.dateTo && item.date > state.filters.dateTo) return false;
         if (state.filters.status === 'pending' && item.is_confirmed) return false;
@@ -1931,6 +1936,7 @@
       refs.calendarMonthLabel.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
 
       const bookingCountByDate = state.bookings.reduce((acc, item) => {
+        if (item.status === 'cancelled') return acc;
         acc[item.date] = (acc[item.date] || 0) + 1;
         return acc;
       }, {});
