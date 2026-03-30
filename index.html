@@ -1099,6 +1099,95 @@
       height: 24px;
     }
 
+
+    .booking-picker {
+      margin-bottom: 18px;
+      padding: 18px;
+      border-radius: 24px;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(139,97,117,.12);
+    }
+    .booking-picker-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .booking-picker-date {
+      text-align: center;
+      font-weight: 800;
+      color: var(--heading);
+      font-size: 16px;
+      line-height: 1.4;
+    }
+    .booking-picker-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 12px;
+    }
+    .booking-picker-slots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+      gap: 10px;
+    }
+    .booking-picker-nav {
+      padding: 12px 14px;
+      min-height: 44px;
+      white-space: nowrap;
+    }
+    .booking-picker-chip {
+      border: 1px solid rgba(139,97,117,.12);
+      border-radius: 18px;
+      background: rgba(255,255,255,.9);
+      padding: 12px 14px;
+      min-height: 52px;
+      font-weight: 800;
+      color: var(--text);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .booking-picker-chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(182,92,130,.26);
+      box-shadow: 0 12px 24px rgba(126,93,109,.08);
+    }
+    .booking-picker-chip.is-selected {
+      background: rgba(182,92,130,.1);
+      border-color: rgba(182,92,130,.34);
+      box-shadow: 0 14px 26px rgba(182,92,130,.12);
+    }
+
+
+    @media (max-width: 680px) {
+      .booking-picker-head {
+        grid-template-columns: 1fr;
+      }
+      .booking-picker-date {
+        order: -1;
+      }
+      .booking-picker-nav {
+        width: 100%;
+      }
+      .booking-picker-slots {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 480px) {
+      .booking-picker {
+        padding: 14px;
+        border-radius: 20px;
+      }
+      .booking-picker-slots {
+        grid-template-columns: 1fr 1fr;
+      }
+      .booking-picker-chip {
+        padding: 11px 12px;
+        min-height: 48px;
+      }
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -3590,6 +3679,16 @@ nav.top-nav a {
         Сначала выберите дату и время в календаре.
       </div>
 
+      <div class="booking-picker" id="bookingPicker">
+        <div class="booking-picker-head">
+          <button type="button" class="btn btn-secondary booking-picker-nav" id="bookingPrevDayBtn" aria-label="Предыдущий день">← День раньше</button>
+          <div class="booking-picker-date" id="bookingPickerDate">Выберите день</div>
+          <button type="button" class="btn btn-secondary booking-picker-nav" id="bookingNextDayBtn" aria-label="Следующий день">День позже →</button>
+        </div>
+        <div class="booking-picker-note" id="bookingPickerNote">Здесь можно быстро сменить день и время, не закрывая форму.</div>
+        <div class="booking-picker-slots" id="bookingPickerSlots"></div>
+      </div>
+
       <form id="bookingForm" class="form-grid">
         <div class="field">
           <label for="clientName">Имя</label>
@@ -3612,7 +3711,7 @@ nav.top-nav a {
           <textarea id="clientComment" name="clientComment" placeholder="Например: нюд, короткая длина или мягкий квадрат"></textarea>
           <div class="helper" id="customServiceHelper" hidden>Например: «Хочу аккуратный светлый вариант, но не знаю, нужно ли укрепление».</div>
           <div class="helper">Можно написать простыми словами: «хочу аккуратно и спокойно», «нужен нюд», «короткая длина», «не понимаю, что выбрать — подскажите».</div>
-          <div class="policy-note">Слот закрепляется автоматически, поэтому одно и то же время нельзя занять дважды.</div>
+          <div class="policy-note">Слот не закрепляется заранее: он ещё раз проверяется в момент подтверждения записи. Если хотите, ниже можно сразу поменять день и время.</div>
         </div>
 
         <div class="form-actions">
@@ -3822,6 +3921,11 @@ nav.top-nav a {
       monthView: document.getElementById('monthView'),
       bookingModal: document.getElementById('bookingModal'),
       bookingSummary: document.getElementById('bookingSummary'),
+      bookingPickerDate: document.getElementById('bookingPickerDate'),
+      bookingPickerNote: document.getElementById('bookingPickerNote'),
+      bookingPickerSlots: document.getElementById('bookingPickerSlots'),
+      bookingPrevDayBtn: document.getElementById('bookingPrevDayBtn'),
+      bookingNextDayBtn: document.getElementById('bookingNextDayBtn'),
       bookingForm: document.getElementById('bookingForm'),
       reviewForm: document.getElementById('reviewForm'),
       reviewsGrid: document.getElementById('reviewsGrid'),
@@ -4553,6 +4657,7 @@ nav.top-nav a {
       renderAdmin();
       highlightNav();
       updateCalendarNavLimits();
+      renderBookingPicker();
     }
 
     function switchViews() {
@@ -4591,6 +4696,66 @@ nav.top-nav a {
         btn.classList.toggle('active', btn.dataset.view === state.view);
       });
     }
+    function shiftSelectedDate(days) {
+      const base = state.selectedDate ? new Date(state.selectedDate + 'T00:00:00') : new Date();
+      base.setDate(base.getDate() + days);
+      if (isOutOfBookingRange(base)) return null;
+      return formatISODate(base);
+    }
+
+    function selectBookingDateFromModal(dateString, preserveTime = true) {
+      if (!dateString) return;
+      const nextDate = new Date(dateString + 'T00:00:00');
+      if (isOutOfBookingRange(nextDate)) return;
+      state.selectedDate = dateString;
+      state.currentDate = nextDate;
+      const freeSlots = getFreeSlots(dateString, getCurrentSelectedService());
+      if (!preserveTime || !freeSlots.includes(state.selectedTime)) {
+        state.selectedTime = freeSlots[0] || null;
+      }
+      render();
+      updateBookingSummary();
+      renderBookingPicker();
+    }
+
+    function renderBookingPicker() {
+      if (!refs.bookingPickerDate || !refs.bookingPickerSlots) return;
+      if (!state.selectedDate) {
+        refs.bookingPickerDate.textContent = 'Сначала выберите день';
+        refs.bookingPickerNote.textContent = 'После выбора даты здесь можно будет быстро переключать соседние дни и время.';
+        refs.bookingPickerSlots.innerHTML = '<div class="helper">Свободные окна появятся здесь после выбора даты.</div>';
+        return;
+      }
+      const date = new Date(state.selectedDate + 'T00:00:00');
+      const iso = formatISODate(date);
+      const freeSlots = getFreeSlots(iso, getCurrentSelectedService());
+      refs.bookingPickerDate.textContent = formatHumanDate(iso);
+      if (isOutOfBookingRange(date)) {
+        refs.bookingPickerNote.textContent = `Онлайн-запись открыта только на ${MAX_BOOKING_MONTHS_AHEAD} месяца вперёд.`;
+        refs.bookingPickerSlots.innerHTML = '<div class="helper">Для этой даты запись недоступна.</div>';
+      } else if (CLOSED_WEEKDAYS.includes(date.getDay())) {
+        refs.bookingPickerNote.textContent = 'На этот день запись закрыта.';
+        refs.bookingPickerSlots.innerHTML = '<div class="helper">Попробуйте выбрать соседний открытый день.</div>';
+      } else if (!freeSlots.length) {
+        refs.bookingPickerNote.textContent = 'На выбранный день свободных окон сейчас нет.';
+        refs.bookingPickerSlots.innerHTML = '<div class="helper">Переключите день кнопками выше — форму закрывать не нужно.</div>';
+      } else {
+        refs.bookingPickerNote.textContent = 'Выберите удобное время. Пока вы не подтвердили запись, слот не бронируется окончательно.';
+        refs.bookingPickerSlots.innerHTML = freeSlots.map(time => `
+          <button
+            type="button"
+            class="booking-picker-chip${state.selectedTime === time ? ' is-selected' : ''}"
+            data-booking-modal-slot="1"
+            data-date="${iso}"
+            data-time="${time}"
+            aria-label="Выбрать время ${time} на ${formatHumanDate(iso)}"
+          >${time}</button>
+        `).join('');
+      }
+      if (refs.bookingPrevDayBtn) refs.bookingPrevDayBtn.disabled = !shiftSelectedDate(-1);
+      if (refs.bookingNextDayBtn) refs.bookingNextDayBtn.disabled = !shiftSelectedDate(1);
+    }
+
 
     function updateBookingSummary() {
       if (!state.selectedDate || !state.selectedTime) {
@@ -4609,6 +4774,7 @@ nav.top-nav a {
         serviceField.value = state.preselectedService;
       }
       updateBookingSummary();
+      renderBookingPicker();
       refs.bookingModal.classList.add('open');
       document.body.style.overflow = 'hidden';
     }
@@ -4849,6 +5015,7 @@ nav.top-nav a {
       }
       render();
       updateBookingSummary();
+      renderBookingPicker();
     });
 
     refs.bookingForm.addEventListener('submit', async e => {
@@ -4984,6 +5151,27 @@ nav.top-nav a {
     document.addEventListener('click', e => {
       const floatingActions = document.getElementById('floatingActions');
       if (floatingActions && !floatingActions.contains(e.target)) closeFloatingMenu();
+    });
+
+    refs.bookingPrevDayBtn?.addEventListener('click', () => {
+      const nextDate = shiftSelectedDate(-1);
+      if (!nextDate) return;
+      selectBookingDateFromModal(nextDate, false);
+    });
+    refs.bookingNextDayBtn?.addEventListener('click', () => {
+      const nextDate = shiftSelectedDate(1);
+      if (!nextDate) return;
+      selectBookingDateFromModal(nextDate, false);
+    });
+    refs.bookingPickerSlots?.addEventListener('click', (event) => {
+      const chip = event.target.closest('[data-booking-modal-slot="1"]');
+      if (!chip) return;
+      state.selectedDate = chip.dataset.date;
+      state.selectedTime = chip.dataset.time;
+      state.currentDate = new Date(`${state.selectedDate}T00:00:00`);
+      render();
+      updateBookingSummary();
+      renderBookingPicker();
     });
 
     document.getElementById('closeModalBtn').addEventListener('click', closeModal);
