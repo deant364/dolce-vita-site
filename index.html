@@ -3910,6 +3910,7 @@ nav.top-nav a {
       preselectedService: '',
       bookings: [],
       reviews: [],
+      blocks: [],
       adminUnlocked: false
     };
 
@@ -4174,9 +4175,55 @@ nav.top-nav a {
       }
     }
 
+    async function loadBlocks() {
+      let rows = [];
+      let lastError = null;
+
+      const direct = await supabaseClient
+        .from('schedule_blocks')
+        .select('id, block_date, start_time, end_time, is_full_day, reason, created_at')
+        .order('block_date', { ascending: true });
+
+      if (!direct.error) {
+        rows = direct.data || [];
+        lastError = null;
+      } else {
+        lastError = direct.error;
+      }
+
+      if (!rows.length) {
+        const rpcVariants = ['get_public_schedule_blocks', 'get_schedule_blocks_public'];
+        for (const rpcName of rpcVariants) {
+          const rpcResult = await supabaseClient.rpc(rpcName);
+          if (!rpcResult.error) {
+            rows = rpcResult.data || [];
+            lastError = null;
+            break;
+          }
+          lastError = rpcResult.error;
+        }
+      }
+
+      if (lastError && !rows.length) {
+        console.warn('LOAD BLOCKS ERROR:', lastError);
+        state.blocks = [];
+        return;
+      }
+
+      state.blocks = rows.map(item => ({
+        id: item.id,
+        date: item.block_date,
+        start_time: item.start_time ? String(item.start_time).slice(0, 5) : null,
+        end_time: item.end_time ? String(item.end_time).slice(0, 5) : null,
+        is_full_day: !!item.is_full_day,
+        reason: item.reason || '',
+        created_at: item.created_at || null
+      }));
+    }
+
     async function initialLoad() {
       try {
-        await Promise.all([loadBookings(), loadReviews()]);
+        await Promise.all([loadBookings(), loadReviews(), loadBlocks()]);
       } catch (error) {
         console.error(error);
         showToast('Не удалось загрузить данные прямо сейчас. Попробуйте обновить страницу или напишите мастеру напрямую.', 'error');
@@ -4209,6 +4256,25 @@ nav.top-nav a {
       return date < minDate || date > maxDate;
     }
 
+
+    function isBlockedDay(dateString) {
+      return state.blocks.some(item => item.date === dateString && item.is_full_day);
+    }
+
+    function isBlockedRange(dateString, startTime, serviceValue = '') {
+      const durationMinutes = getServiceDuration(serviceValue);
+      const candidate = getBookingRange(dateString, startTime, durationMinutes);
+
+      return state.blocks.some(item => {
+        if (item.date !== dateString) return false;
+        if (item.is_full_day) return true;
+        if (!item.start_time || !item.end_time) return false;
+
+        const blockRange = getBookingRange(dateString, item.start_time, timeToMinutes(item.end_time) - timeToMinutes(item.start_time));
+        return rangesOverlap(candidate, blockRange);
+      });
+    }
+
     function canBookAt(dateString, startTime, serviceValue = '') {
       const durationMinutes = getServiceDuration(serviceValue);
       const candidate = getBookingRange(dateString, startTime, durationMinutes);
@@ -4219,6 +4285,8 @@ nav.top-nav a {
       if (candidate.end > dayEnd) return false;
       if (isPastDateTime(dateString, startTime)) return false;
       if (isOutOfBookingRange(dateString)) return false;
+      if (isBlockedDay(dateString)) return false;
+      if (isBlockedRange(dateString, startTime, serviceValue)) return false;
 
       return !state.bookings.some(item => {
         const bookingRange = getBookingRange(item.date, item.time, getBookingDuration(item));
@@ -4264,6 +4332,10 @@ nav.top-nav a {
 
       if (CLOSED_WEEKDAYS.includes(date.getDay())) {
         return '<div class="helper">На этот день запись закрыта.</div>';
+      }
+
+      if (isBlockedDay(dateString)) {
+        return '<div class="helper">Этот день закрыт мастером для онлайн-записи. Выберите другую дату.</div>';
       }
 
       const serviceDuration = getServiceDuration(serviceValue);
@@ -4871,10 +4943,17 @@ nav.top-nav a {
           || normalizedMessage.includes('already booked')
           || normalizedMessage.includes('уже занято');
 
+        const isBlockedDayError = normalizedMessage.includes('день закрыт для записи');
+        const isBlockedTimeError = normalizedMessage.includes('время закрыто мастером');
+
         showToast(
-          isTakenSlotError
-            ? 'Это время уже успели занять. Выберите соседний слот или другой день.'
-            : (error.message || 'Не удалось сохранить запись. Проверьте данные и попробуйте ещё раз.'),
+          isBlockedDayError
+            ? 'Этот день закрыт мастером для записи. Выберите другую дату.'
+            : isBlockedTimeError
+              ? 'Это время закрыто мастером. Выберите другой слот.'
+              : isTakenSlotError
+                ? 'Это время уже успели занять. Выберите соседний слот или другой день.'
+                : (error.message || 'Не удалось сохранить запись. Проверьте данные и попробуйте ещё раз.'),
           'error'
         );
         await initialLoad();
