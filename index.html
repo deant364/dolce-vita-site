@@ -4629,6 +4629,7 @@ nav.top-nav a {
       }
       updateBookingSummary();
       refs.bookingModal.classList.add('open');
+      document.body.classList.add('modal-open');
       document.body.style.overflow = 'hidden';
     }
 
@@ -4643,11 +4644,15 @@ nav.top-nav a {
     function openContactModal() {
       refs.contactModal.classList.add('open');
       closeFloatingMenu();
+      document.body.classList.add('modal-open');
       document.body.style.overflow = 'hidden';
     }
 
     function closeContactModal() {
       refs.contactModal.classList.remove('open');
+      if (!refs.bookingModal.classList.contains('open')) {
+        document.body.classList.remove('modal-open');
+      }
       document.body.style.overflow = refs.bookingModal.classList.contains('open') ? 'hidden' : '';
     }
 
