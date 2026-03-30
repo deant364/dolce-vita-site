@@ -1012,10 +1012,6 @@
       flex-direction: column;
       align-items: flex-end;
       gap: 12px;
-      pointer-events: none;
-    }
-    .floating-actions > * {
-      pointer-events: auto;
     }
     .floating-menu {
       display: none;
@@ -1213,6 +1209,23 @@
       justify-content: end;
       flex-wrap: wrap;
       margin-top: 8px;
+    }
+    @media (max-width: 820px) {
+      .modal {
+        max-height: min(92vh, calc(100dvh - 20px));
+        padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+      }
+      .form-actions {
+        position: sticky;
+        bottom: calc(-8px + env(safe-area-inset-bottom, 0px));
+        margin: 18px -4px -4px;
+        padding: 12px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+        background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.94) 24%, rgba(255,255,255,.98) 100%);
+        z-index: 3;
+      }
+      .form-actions .btn {
+        min-height: 52px;
+      }
     }
 
     .toast-wrap {
@@ -2200,25 +2213,30 @@ nav.top-nav a.active {
       left: 12px;
       right: 12px;
       bottom: 12px;
-      z-index: 95;
+      z-index: 70;
       padding: 10px;
       border-radius: 22px;
-      background: rgba(255,255,255,.92);
+      background: rgba(255,255,255,.86);
       border: 1px solid rgba(139,97,117,.10);
       box-shadow: 0 18px 44px rgba(77,53,65,.16);
       backdrop-filter: blur(14px);
       gap: 10px;
-      pointer-events: auto;
-      touch-action: manipulation;
     }
     .mobile-cta-bar .btn {
       flex: 1 1 0;
       min-height: 48px;
       padding: 12px 14px;
       font-size: 14px;
-      position: relative;
-      z-index: 1;
       touch-action: manipulation;
+    }
+    body.booking-overlay-open .mobile-cta-bar,
+    body.booking-overlay-open .floating-actions {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px);
+    }
+    body.booking-overlay-open {
+      padding-bottom: 0 !important;
     }
     @media (max-width: 900px) {
       .quick-contact-strip,
@@ -4608,30 +4626,37 @@ nav.top-nav a {
       refs.bookingSummary.innerHTML = `<strong>Выбранный слот:</strong><br>${formatHumanDate(state.selectedDate)} • ${state.selectedTime}${durationText}`;
     }
 
+    function syncMobileOverlayState() {
+      const hasOverlay = refs.bookingModal.classList.contains('open') || refs.contactModal.classList.contains('open');
+      document.body.classList.toggle('booking-overlay-open', hasOverlay);
+      document.body.style.overflow = hasOverlay ? 'hidden' : '';
+    }
+
     function openModal() {
       const serviceField = document.getElementById('serviceType');
       if (serviceField && state.preselectedService) {
         serviceField.value = state.preselectedService;
       }
       updateBookingSummary();
+      closeFloatingMenu();
       refs.bookingModal.classList.add('open');
-      document.body.style.overflow = 'hidden';
+      syncMobileOverlayState();
     }
 
     function closeModal() {
       refs.bookingModal.classList.remove('open');
-      document.body.style.overflow = '';
+      syncMobileOverlayState();
     }
 
     function openContactModal() {
       refs.contactModal.classList.add('open');
       closeFloatingMenu();
-      document.body.style.overflow = 'hidden';
+      syncMobileOverlayState();
     }
 
     function closeContactModal() {
       refs.contactModal.classList.remove('open');
-      document.body.style.overflow = refs.bookingModal.classList.contains('open') ? 'hidden' : '';
+      syncMobileOverlayState();
     }
 
     function toggleFloatingMenu(force) {
