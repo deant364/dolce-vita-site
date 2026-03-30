@@ -4041,11 +4041,13 @@ nav.top-nav a {
 
       if (error) throw error;
 
-      state.bookings = (data || []).map(item => ({
-        date: item.booking_date,
-        time: normalizeTime(item.booking_time),
-        service: item.service ? extractServiceName(item.service) : ''
-      }));
+      state.bookings = (data || [])
+        .filter(item => String(item.status || '').toLowerCase() !== 'cancelled')
+        .map(item => ({
+          date: item.booking_date,
+          time: normalizeTime(item.booking_time),
+          service: item.service ? extractServiceName(item.service) : ''
+        }));
     }
 
     async function loadReviews() {
@@ -4106,9 +4108,11 @@ nav.top-nav a {
     function canBookAt(dateString, startTime, serviceValue = '') {
       const durationMinutes = getServiceDuration(serviceValue);
       const candidate = getBookingRange(dateString, startTime, durationMinutes);
-      const latestStart = timeToMinutes(DAY_END_TIME);
+      const dayStart = timeToMinutes(DAY_START_TIME);
+      const dayEnd = timeToMinutes(DAY_END_TIME);
 
-      if (candidate.start > latestStart) return false;
+      if (candidate.start < dayStart) return false;
+      if (candidate.end > dayEnd) return false;
       if (isPastDateTime(dateString, startTime)) return false;
       if (isOutOfBookingRange(dateString)) return false;
 
