@@ -1,79 +1,2229 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Admin Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Кабинет мастера — Дольче вита</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#fdf7f8;
+      --card:rgba(255,255,255,.88);
+      --line:rgba(150,114,124,.14);
+      --text:#6b5960;
+      --muted:#927f88;
+      --heading:#826872;
+      --primary:#b48b95;
+      --primary-dark:#96727c;
+      --success:#6f8f7e;
+      --danger:#bc7f8f;
+      --gold:#c7a984;
+      --shadow:0 20px 48px rgba(128,95,107,.09);
+      --radius:28px;
+      --max:1440px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:"Manrope",Arial,sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(231,203,214,.4), transparent 26%),
+        radial-gradient(circle at 95% 8%, rgba(223,198,165,.14), transparent 18%),
+        linear-gradient(180deg, #fffdfd 0%, #fcf6f8 45%, #fffefe 100%);
+      min-height:100vh;
+    }
+    a{text-decoration:none;color:inherit}
+    button,input{font:inherit}
+    .container{width:min(var(--max), calc(100% - 32px));margin:0 auto}
+    .topbar{
+      position:sticky;top:0;z-index:30;
+      backdrop-filter:blur(14px);
+      background:rgba(255,248,251,.78);
+      border-bottom:1px solid rgba(255,255,255,.7);
+    }
+    .topbar-inner{
+      min-height:78px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    }
+    .brand{display:flex;align-items:center;gap:14px;min-width:0}
+    .brand-mark{
+      width:48px;height:48px;border-radius:18px;display:grid;place-items:center;font-weight:900;
+      background:linear-gradient(135deg, rgba(180,139,149,.18), rgba(199,169,132,.22));
+      color:var(--primary-dark); box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
+      flex:none;
+    }
+    .brand strong{display:block;font-size:17px;color:var(--heading)}
+    .brand span{display:block;color:var(--muted);font-size:13px}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .btn{
+      border:none; cursor:pointer; border-radius:999px; padding:14px 18px; font-weight:700;
+      transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{
+      background:linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color:#fff; box-shadow:0 16px 32px rgba(180,139,149,.24);
+    }
+    .btn-secondary{
+      background:rgba(255,255,255,.82); color:var(--text); border:1px solid var(--line);
+    }
+    .btn-danger{
+      background:rgba(188,127,143,.11); color:#9c5567; border:1px solid rgba(188,127,143,.22);
+    }
+    .hero{padding:28px 0 20px}
+    .hero-grid{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr);
+      gap:22px;
+      align-items:stretch;
+    }
+    .login-card{
+      max-width:760px;
+      width:100%;
+      margin:0 auto;
+    }
+    .intro-guide{
+      padding:30px;
+      position:relative;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,.92) 0%, rgba(255,255,255,.82) 26%, rgba(243,221,230,.74) 62%, rgba(255,248,251,.72) 100%),
+        linear-gradient(135deg, rgba(180,139,149,.08), rgba(199,169,132,.12));
+    }
+    .intro-guide::before{
+      content:'';
+      position:absolute;
+      inset:auto -40px -70px auto;
+      width:240px;
+      height:240px;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(199,169,132,.18), transparent 66%);
+      pointer-events:none;
+    }
+    .intro-guide > *{position:relative;z-index:1}
+    .intro-guide-head{
+      display:flex;
+      justify-content:space-between;
+      gap:18px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+    .intro-guide-head p{
+      margin:10px 0 0;
+      color:var(--muted);
+      line-height:1.7;
+      max-width:760px;
+    }
+    .guide-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:16px;
+      margin-top:8px;
+    }
+    .guide-card{
+      padding:22px;
+      border-radius:24px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(255,255,255,.86);
+      box-shadow:0 14px 32px rgba(128,95,107,.07);
+    }
+    .guide-no{
+      width:44px;
+      height:44px;
+      border-radius:16px;
+      display:grid;
+      place-items:center;
+      margin-bottom:14px;
+      font-weight:800;
+      color:var(--primary-dark);
+      background:linear-gradient(135deg, rgba(180,139,149,.18), rgba(199,169,132,.22));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.86);
+    }
+    .guide-card strong{
+      display:block;
+      margin-bottom:8px;
+      color:var(--heading);
+      font-size:18px;
+    }
+    .guide-card span{
+      display:block;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:14px;
+    }
+    .card{
+      border-radius:var(--radius);
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.86);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+    }
+    .login-card,.overview-card{padding:28px}
+    .badge{
+      display:inline-flex;align-items:center;gap:10px;
+      padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.72);
+      border:1px solid rgba(255,255,255,.76);color:var(--primary-dark);font-size:13px;
+      margin-bottom:14px;
+    }
+    .badge::before{content:"✦";color:var(--gold)}
+    h1,h2,h3{margin:0;color:var(--heading);letter-spacing:-.02em}
+    h1{font-size:clamp(30px, 4vw, 48px);line-height:1.02;margin-bottom:12px}
+    .lead{margin:0;color:var(--muted);font-size:16px;line-height:1.7}
+    .helper{margin-top:12px;color:var(--muted);font-size:13px;line-height:1.6}
+    .field{display:grid;gap:8px;margin-top:16px}
+    .field label{font-size:14px;font-weight:700}
+    .field input,
+    .field select,
+    .field textarea{
+      width:100%; border-radius:18px; border:1px solid var(--line); background:rgba(255,255,255,.9);
+      padding:16px 18px; outline:none;
+    }
+    .field input:focus{border-color:rgba(180,139,149,.4); box-shadow:0 0 0 4px rgba(180,139,149,.08)}
+    .login-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .steps{
+      display:grid; gap:12px; margin-top:18px;
+    }
+    .step{
+      border-radius:22px; padding:16px 18px; background:rgba(255,255,255,.72); border:1px solid var(--line);
+    }
+    .step strong{display:block; margin-bottom:6px; color:var(--heading)}
+    .dashboard{
+      padding:0 0 28px;
+    }
+    .dashboard[hidden]{display:none}
+    .layout{
+      display:grid; grid-template-columns:300px minmax(0, 1fr); gap:22px;
+      align-items:start;
+    }
+    .sidebar{position:sticky; top:98px; padding:20px}
+    .nav-title{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+    .nav-links{display:grid;gap:8px}
+    .nav-link{
+      display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:18px;
+      background:rgba(255,255,255,.72); border:1px solid var(--line); font-weight:700; color:var(--text);
+    }
+    .nav-link:hover{border-color:rgba(180,139,149,.28)}
+    .content{display:grid;gap:20px}
+    .section-card{padding:24px}
+    .section-head{
+      display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px;
+    }
+    .section-head p{margin:8px 0 0;color:var(--muted);line-height:1.6}
+    .stats{
+      display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px
+    }
+    .stat{
+      padding:18px;border-radius:22px;background:rgba(255,255,255,.78);border:1px solid var(--line);
+    }
+    .stat strong{display:block;font-size:30px;color:var(--heading);line-height:1.1}
+    .stat span{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .kpi-note{margin-top:14px;color:var(--muted);font-size:13px;line-height:1.6}
+    .cards-grid{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:16px}
+    .list{display:grid;gap:12px}
+    .item{
+      padding:16px 18px;border-radius:22px;background:rgba(255,255,255,.8);border:1px solid var(--line);
+      box-shadow:0 10px 26px rgba(126,93,109,.05);
+    }
+    .item strong{display:block;margin-bottom:6px;color:var(--heading);font-size:16px}
+    .item span,.item small{display:block;color:var(--muted);line-height:1.6}
+    .item small{font-size:13px}
+    .item-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .empty{
+      padding:18px;border-radius:20px;background:rgba(255,255,255,.66);border:1px dashed rgba(150,114,124,.22);color:var(--muted)
+    }
+    .mini-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .mini-step{padding:18px;border-radius:22px;background:rgba(255,255,255,.78);border:1px solid var(--line)}
+    .mini-step strong{display:block;margin-bottom:8px;color:var(--heading)}
+    .filters{display:flex;gap:10px;flex-wrap:wrap}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;
+      border:1px solid var(--line);background:rgba(255,255,255,.74);color:var(--text);font-weight:700;
+    }
+    .status{
+      display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;
+      margin-top:8px
+    }
+    .status.pending{background:rgba(199,169,132,.12); color:#8c6c35}
+    .status.approved{background:rgba(111,143,126,.12); color:var(--success)}
+    .status.booking-pending{background:rgba(199,169,132,.14); color:#8c6c35}
+    .status.booking-confirmed{background:rgba(111,143,126,.14); color:var(--success)}
+    .toast-wrap{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:60;display:grid;gap:10px;width:min(92vw, 420px)}
+    .toast{padding:14px 16px;border-radius:18px;color:white;box-shadow:0 18px 36px rgba(49,29,41,.24);opacity:0;transform:translateY(10px);animation:toastIn .24s ease forwards}
+    .toast.success{background:linear-gradient(135deg,#6f8f7e,#4f7763)}
+    .toast.error{background:linear-gradient(135deg,#bf5776,#9f3d5e)}
+    .toast.info{background:linear-gradient(135deg,#9a6f82,#7b5567)}
+    @keyframes toastIn{to{opacity:1;transform:translateY(0)}}
+    @media (max-width:1100px){
+      .hero-grid,.layout,.cards-grid{grid-template-columns:1fr}
+      .stats{grid-template-columns:repeat(2, minmax(0,1fr))}
+      .mini-steps{grid-template-columns:1fr}
+      .guide-grid{grid-template-columns:1fr}
+      .sidebar{position:static}
+    }
+        @media (max-width:900px){
+      .topbar-inner{
+        align-items:flex-start;
+        padding:12px 0;
+      }
+      .brand{
+        width:100%;
+      }
+      .top-actions{
+        width:100%;
+        justify-content:stretch;
+      }
+      .top-actions .btn,
+      .top-actions a.btn{
+        flex:1 1 calc(50% - 8px);
+        min-height:48px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+      }
+      .layout{
+        gap:16px;
+      }
+      .sidebar{
+        padding:14px;
+      }
+      .nav-links{
+        display:flex;
+        gap:10px;
+        overflow-x:auto;
+        padding-bottom:2px;
+        scroll-snap-type:x proximity;
+        -webkit-overflow-scrolling:touch;
+      }
+      .nav-links::-webkit-scrollbar{display:none}
+      .nav-link{
+        flex:0 0 auto;
+        min-height:46px;
+        white-space:nowrap;
+        scroll-snap-align:start;
+      }
+      .section-head{
+        margin-bottom:14px;
+      }
+      .toolbar,
+      .filters{
+        width:100%;
+      }
+      .toolbar .btn{
+        flex:1 1 100%;
+        min-height:48px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+      }
+      .chip{
+        min-height:42px;
+      }
+    }
+    @media (max-width:680px){
+      body{
+        font-size:15px;
+      }
+      .hero{
+        padding:18px 0 16px;
+      }
+      .topbar-inner{
+        gap:12px;
+      }
+      .brand{
+        align-items:flex-start;
+      }
+      .brand-mark{
+        width:42px;
+        height:42px;
+        border-radius:16px;
+      }
+      .brand strong{
+        font-size:16px;
+      }
+      .brand span{
+        font-size:12px;
+      }
+      .top-actions{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:8px;
+      }
+      .top-actions .btn,
+      .top-actions a.btn{
+        width:100%;
+        min-width:0;
+        padding:13px 14px;
+        min-height:46px;
+      }
+      .login-actions{
+        display:grid;
+        grid-template-columns:1fr;
+      }
+      .login-actions .btn,
+      .login-actions a.btn{
+        width:100%;
+        min-height:48px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        text-align:center;
+      }
+      .intro-guide-head{
+        margin-bottom:16px;
+      }
+      .intro-guide-head .chip{
+        width:100%;
+        justify-content:center;
+      }
+      .guide-card,
+      .item,
+      .mini-step,
+      .stat,
+      .step{
+        border-radius:20px;
+      }
+      .stats{
+        grid-template-columns:repeat(2, minmax(0,1fr));
+        gap:12px;
+      }
+      .stat{
+        padding:16px;
+      }
+      .stat strong{
+        font-size:26px;
+      }
+      .cards-grid{
+        gap:14px;
+      }
+      .section-card h2,
+      .intro-guide h2{
+        font-size:28px;
+        line-height:1.08;
+      }
+      h3{
+        font-size:20px;
+      }
+      .item-actions{
+        display:grid;
+        grid-template-columns:1fr;
+      }
+      .item-actions .btn{
+        width:100%;
+        min-height:46px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+      }
+      .helper,
+      .lead,
+      .section-head p,
+      .guide-card span,
+      .item span,
+      .item small{
+        font-size:14px;
+      }
+      .container{width:min(100% - 20px, var(--max))}
+      .topbar-inner{min-height:72px}
+      .stats{grid-template-columns:1fr}
+      .cards-grid{grid-template-columns:1fr}
+      .intro-guide,.section-card,.sidebar,.login-card{padding:18px}
+    }
+    @media (max-width:480px){
+      .container{
+        width:min(100% - 16px, var(--max));
+      }
+      .top-actions{
+        grid-template-columns:1fr;
+      }
+      .hero{
+        padding-top:14px;
+      }
+      .login-card,.overview-card,.intro-guide,.section-card,.sidebar{
+        padding:16px;
+      }
+      h1{
+        font-size:32px;
+      }
+      .lead{
+        font-size:15px;
+      }
+      .guide-grid,
+      .mini-steps,
+      .stats,
+      .cards-grid{
+        grid-template-columns:1fr;
+      }
+      .guide-card{
+        padding:18px;
+      }
+      .nav-link{
+        padding:12px 14px;
+        border-radius:16px;
+        font-size:14px;
+      }
+      .field input{
+        padding:15px 16px;
+        font-size:16px;
+      }
+      .btn{
+        padding:13px 16px;
+      }
+      .toast-wrap{
+        width:min(94vw, 360px);
+        bottom:14px;
+      }
+    }
+  
+
+    /* universal device adaptation enhancements */
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+    body {
+      overflow-x: hidden;
+    }
+    .section-card,
+    .login-card,
+    .intro-guide,
+    .sidebar,
+    .item,
+    .guide-card,
+    .mini-step,
+    .stat,
+    .step,
+    .nav-link,
+    .btn,
+    .chip,
+    .field input {
+      max-width: 100%;
+    }
+    .nav-link,
+    .btn,
+    .chip,
+    .field input {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .dashboard section,
+    .hero section {
+      scroll-margin-top: 104px;
+    }
+    .toolbar .btn,
+    .item-actions .btn,
+    .login-actions .btn,
+    .top-actions .btn,
+    .top-actions a.btn {
+      min-height: 48px;
+    }
+    @media (min-width: 1600px) {
+      :root {
+        --max: 1680px;
+      }
+      .layout {
+        grid-template-columns: 340px minmax(0, 1fr);
+        gap: 26px;
+      }
+      .content {
+        gap: 24px;
+      }
+      .section-card,
+      .intro-guide,
+      .login-card {
+        padding: 30px;
+      }
+      .stats {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+      .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (min-width: 1280px) and (max-width: 1599px) {
+      .layout {
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+    }
+    @media (min-width: 901px) and (max-width: 1279px) {
+      .layout {
+        grid-template-columns: 260px minmax(0, 1fr);
+        gap: 18px;
+      }
+      .sidebar {
+        padding: 16px;
+      }
+      .section-card,
+      .intro-guide,
+      .login-card {
+        padding: 22px;
+      }
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .mini-steps {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+    @media (min-width: 681px) and (max-width: 900px) {
+      .hero {
+        padding: 20px 0 18px;
+      }
+      .topbar-inner {
+        flex-direction: column;
+      }
+      .top-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+      .section-card h2,
+      .intro-guide h2 {
+        font-size: 30px;
+      }
+    }
+    @media (min-width: 481px) and (max-width: 680px) {
+      .topbar {
+        position: sticky;
+      }
+      .topbar-inner {
+        flex-direction: column;
+      }
+      .guide-grid,
+      .cards-grid,
+      .mini-steps {
+        grid-template-columns: 1fr;
+      }
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .section-head {
+        align-items: stretch;
+      }
+      .toolbar,
+      .filters,
+      .login-actions,
+      .item-actions {
+        width: 100%;
+      }
+    }
+    @media (max-width: 480px) {
+      body {
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+      }
+      .topbar {
+        padding-top: env(safe-area-inset-top);
+      }
+      .dashboard section,
+      .hero section {
+        scroll-margin-top: 88px;
+      }
+      .badge {
+        font-size: 12px;
+        padding: 8px 12px;
+      }
+      .section-head {
+        gap: 12px;
+      }
+      .toolbar,
+      .filters,
+      .login-actions,
+      .item-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .toolbar .btn,
+      .filters .chip,
+      .login-actions .btn,
+      .item-actions .btn {
+        width: 100%;
+      }
+      .stat strong {
+        font-size: 24px;
+      }
+      .intro-guide-head p,
+      .section-head p,
+      .lead,
+      .helper,
+      .guide-card span,
+      .item span,
+      .item small {
+        line-height: 1.55;
+      }
+    }
+    @media (hover: none) {
+      .btn:hover,
+      .nav-link:hover {
+        transform: none;
+      }
+    }
+
+    .comment-bubble{
+      margin-top:10px;
+      padding:12px 14px;
+      border-radius:18px;
+      background:linear-gradient(135deg, rgba(180,139,149,.10), rgba(199,169,132,.10));
+      border:1px solid rgba(180,139,149,.18);
+    }
+    .comment-bubble strong{
+      display:block;
+      margin-bottom:6px;
+      color:var(--heading);
+      font-size:13px;
+    }
+    .comment-bubble span{
+      display:block;
+      color:var(--text);
+      line-height:1.6;
+      white-space:pre-wrap;
+    }
+    .filter-bar{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-top:16px;
+    }
+    .filter-card{
+      padding:16px;
+      border-radius:22px;
+      background:rgba(255,255,255,.78);
+      border:1px solid var(--line);
+    }
+    .filter-card label{
+      display:block;
+      font-size:13px;
+      font-weight:700;
+      margin-bottom:8px;
+      color:var(--heading);
+    }
+    .filter-card input,.filter-card select{
+      width:100%;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#fff;
+      padding:12px 14px;
+    }
+    .calendar-mini{
+      display:grid;
+      gap:14px;
+    }
+    .calendar-mini-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+    .calendar-mini-grid{
+      display:grid;
+      grid-template-columns:repeat(7, minmax(0,1fr));
+      gap:8px;
+    }
+    .calendar-mini-weekday,
+    .calendar-mini-day{
+      text-align:center;
+      border-radius:16px;
+      padding:10px 6px;
+      background:rgba(255,255,255,.74);
+      border:1px solid var(--line);
+    }
+    .calendar-mini-weekday{
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.04em;
+      background:transparent;
+      border:none;
+    }
+    .calendar-mini-day{
+      cursor:pointer;
+      min-height:72px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      align-items:center;
+      transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    }
+    .calendar-mini-day:hover{transform:translateY(-1px);border-color:rgba(180,139,149,.35)}
+    .calendar-mini-day.is-muted{opacity:.45}
+    .calendar-mini-day.is-selected{
+      border-color:rgba(180,139,149,.45);
+      box-shadow:0 10px 20px rgba(180,139,149,.12);
+      background:rgba(255,248,251,.95);
+    }
+    .calendar-mini-day.has-bookings .calendar-mini-count{
+      color:var(--primary-dark);
+      font-weight:800;
+    }
+    .calendar-mini-day .calendar-mini-num{
+      font-weight:800;
+      color:var(--heading);
+    }
+    .calendar-mini-day .calendar-mini-count{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .pill-row{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(180,139,149,.08);
+      border:1px solid rgba(180,139,149,.16);
+      color:var(--primary-dark);
+      font-size:12px;
+      font-weight:700;
+    }
+    .meta-grid{
+      display:grid;
+      gap:6px;
+      margin-top:4px;
+    }
+    @media (max-width:1100px){
+      .filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (max-width:680px){
+      .filter-bar,.calendar-mini-grid{grid-template-columns:1fr}
+      .calendar-mini-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+
+  </style>
 </head>
 <body>
-<h2>Админка</h2>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">DV</div>
+        <div>
+          <strong>Кабинет мастера</strong>
+          <span>Полноэкранная страница для работы без путаницы</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="btn btn-secondary" href="./index.html">Открыть сайт</a>
+        <button class="btn btn-secondary" id="refreshBtn" type="button">Обновить данные</button>
+        <button class="btn btn-primary" id="logoutTopBtn" type="button" hidden>Выйти</button>
+      </div>
+    </div>
+  </header>
 
-<div id="login">
-<input id="pin" placeholder="PIN"/>
-<button onclick="login()">Войти</button>
-</div>
+  <main class="container hero">
+    <section class="hero-grid">
+      <div class="card login-card" id="loginCard">
+        <span class="badge">Просто и понятно</span>
+        <h1>Открой кабинет и сразу видно главное</h1>
+        <p class="lead">Здесь всё вынесено на отдельную страницу: записи на сегодня и завтра, отзывы на проверке, опубликованные отзывы и быстрые кнопки без мелких боковых панелей.</p>
+        <div class="field">
+          <label for="pinInput">PIN для входа</label>
+          <input id="pinInput" type="password" inputmode="numeric" placeholder="Введите PIN" />
+        </div>
+        <div class="login-actions">
+          <button class="btn btn-primary" id="loginBtn" type="button">Войти</button>
+          <a class="btn btn-secondary" href="./index.html">Вернуться на сайт</a>
+        </div>
+        <div class="helper">PIN пока остаётся тем же, что и раньше. Это удобно для быстрого входа, но для боевой версии лучше потом заменить на отдельную авторизацию.</div>
+      </div>
+    </section>
 
-<div id="app" style="display:none;">
-<h3>Записи</h3>
-<div id="list"></div>
-</div>
+    <section class="card intro-guide">
+      <div class="intro-guide-head">
+        <div>
+          <span class="badge">Как пользоваться</span>
+          <h2>Красивый и понятный порядок работы</h2>
+          <p>Я вынес инструкцию в отдельный широкий блок, чтобы она не выглядела боковой мелочью. Человек без опыта сразу понимает, куда смотреть сначала, что делать потом и где заканчивается ежедневная рутина.</p>
+        </div>
+        <div class="chip">Смотри сверху вниз</div>
+      </div>
+      <div class="guide-grid">
+        <div class="guide-card">
+          <div class="guide-no">1</div>
+          <strong>Сначала открой сводку</strong>
+          <span>Посмотри, сколько записей сегодня, завтра, сколько ещё нужно подтвердить и сколько отзывов ждут проверки. Это главный экран, чтобы быстро понять день.</span>
+        </div>
+        <div class="guide-card">
+          <div class="guide-no">2</div>
+          <strong>Потом подтверди записи</strong>
+          <span>Новые записи можно подтвердить или отменить. Пока запись не подтверждена, это время всё равно считается занятым и для клиентов остаётся закрытым.</span>
+        </div>
+        <div class="guide-card">
+          <div class="guide-no">3</div>
+          <strong>Потом проверь отзывы</strong>
+          <span>Все новые отзывы сначала попадают на модерацию. Прочитай текст и нажми «Опубликовать» только если всё в порядке.</span>
+        </div>
+      </div>
+    </section>
 
-<script>
-const supabaseClient = supabase.createClient("YOUR_URL","YOUR_ANON_KEY");
+    <section class="dashboard" id="dashboard" hidden>
+      <div class="layout">
+        <aside class="card sidebar">
+          <div class="nav-title">Разделы</div>
+          <nav class="nav-links">
+            <a class="nav-link" href="#summary">Главное</a>
+            <a class="nav-link" href="#today">Сегодня и завтра</a>
+            <a class="nav-link" href="#upcoming">Ближайшие записи</a>
+            <a class="nav-link" href="#pending-reviews">Отзывы на проверке</a>
+            <a class="nav-link" href="#published-reviews">Опубликованные отзывы</a>
+            <a class="nav-link" href="#help">Подсказки</a>
+          </nav>
+        </aside>
 
-let state = { bookings: [] };
+        <div class="content">
+          <section class="card section-card" id="summary">
+            <div class="section-head">
+              <div>
+                <span class="badge">Главное на сегодня</span>
+                <h2>Краткая сводка</h2>
+                <p>Ниже только самые важные цифры и быстрые действия.</p>
+              </div>
+              <div class="toolbar">
+                <button class="btn btn-primary" id="exportBookingsBtn" type="button">Скачать записи CSV</button>
+                <button class="btn btn-secondary" id="exportReviewsBtn" type="button">Скачать отзывы CSV</button>
+              </div>
+            </div>
+            <div class="stats" id="statsGrid"></div>
+            <div class="kpi-note" id="updatedAtNote">Загружаю данные…</div>
+          </section>
 
-function login(){
-  if(document.getElementById('pin').value === "1234"){
-    document.getElementById('login').style.display="none";
-    document.getElementById('app').style.display="block";
-    load();
-  }
-}
 
-async function load(){
-  const {data,error} = await supabaseClient
-    .from('bookings')
-    .select('*')
-    .order('booking_date');
+          <section class="card section-card" id="filters">
+            <div class="section-head">
+              <div>
+                <span class="badge">Умный просмотр</span>
+                <h2>Фильтры по дате и статусу</h2>
+                <p>Здесь можно быстро выбрать конкретный день, диапазон или показать только неподтверждённые записи.</p>
+              </div>
+            </div>
+            <div class="filter-bar">
+              <div class="filter-card">
+                <label for="filterDateFrom">Дата от</label>
+                <input id="filterDateFrom" type="date" />
+              </div>
+              <div class="filter-card">
+                <label for="filterDateTo">Дата до</label>
+                <input id="filterDateTo" type="date" />
+              </div>
+              <div class="filter-card">
+                <label for="filterStatus">Статус</label>
+                <select id="filterStatus">
+                  <option value="all">Все записи</option>
+                  <option value="pending">Ждут подтверждения</option>
+                  <option value="confirmed">Подтверждённые</option>
+                </select>
+              </div>
+              <div class="filter-card">
+                <label for="filterSearch">Поиск</label>
+                <input id="filterSearch" type="text" placeholder="Имя, телефон, услуга" />
+              </div>
+            </div>
+            <div class="pill-row">
+              <button class="btn btn-secondary" id="filterTodayBtn" type="button">Сегодня</button>
+              <button class="btn btn-secondary" id="filterTomorrowBtn" type="button">Завтра</button>
+              <button class="btn btn-secondary" id="filterWeekBtn" type="button">7 дней</button>
+              <button class="btn btn-secondary" id="filterResetBtn" type="button">Сбросить фильтры</button>
+            </div>
+          </section>
 
-  if(error){
-    alert(error.message);
-    return;
-  }
+          <section class="card section-card" id="calendar">
+            <div class="section-head">
+              <div>
+                <span class="badge">Быстрый календарь</span>
+                <h2>Красивый обзор месяца</h2>
+                <p>Нажми на день, чтобы сразу отфильтровать записи по выбранной дате.</p>
+              </div>
+            </div>
+            <div class="calendar-mini">
+              <div class="calendar-mini-head">
+                <button class="btn btn-secondary" id="calendarPrevBtn" type="button">← Месяц назад</button>
+                <div class="chip" id="calendarMonthLabel">Месяц</div>
+                <button class="btn btn-secondary" id="calendarNextBtn" type="button">Месяц вперёд →</button>
+              </div>
+              <div class="calendar-mini-grid" id="calendarMiniGrid"></div>
+            </div>
+          </section>
 
-  state.bookings = data.filter(b => b.status !== 'cancelled');
-  render();
-}
+          <section class="card section-card">
+            <div class="section-head">
+              <div>
+                <span class="badge">Что сделать сейчас</span>
+                <h2>Порядок действий</h2>
+              </div>
+            </div>
+            <div class="mini-steps">
+              <div class="mini-step">
+                <strong>Проверь день</strong>
+                <span>Если сегодня много записей, можно заранее приготовить материалы.</span>
+              </div>
+              <div class="mini-step">
+                <strong>Подтверди записи</strong>
+                <span>Новые записи сначала подтверди или отмени. Неподтверждённые тоже занимают время в расписании.</span>
+              </div>
+              <div class="mini-step">
+                <strong>Проверь отзывы</strong>
+                <span>Сначала одобри хорошие отзывы, потом при необходимости удаляй лишние.</span>
+              </div>
+            </div>
+          </section>
 
-function render(){
-  const el = document.getElementById('list');
-  el.innerHTML = "";
 
-  state.bookings.forEach(b=>{
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <b>${b.booking_date} ${b.booking_time}</b><br>
-      ${b.client_name} | ${b.client_phone}<br>
-      ${b.service}<br>
-      ${b.comment || ''}<br>
-      <button onclick="confirm('${b.id}')">Подтвердить</button>
-      <button onclick="cancelBooking('${b.id}')">Отменить</button>
-      <hr>
-    `;
-    el.appendChild(div);
-  });
-}
+          <section class="card section-card" id="blocks">
+            <div class="section-head">
+              <div>
+                <span class="badge">Блокировка расписания</span>
+                <h2>Закрыть день или промежуток</h2>
+                <p>Можно закрыть весь день или указать промежуток времени. Эти блокировки сразу влияют на публичный сайт и скрывают слоты из записи.</p>
+              </div>
+            </div>
+            <div class="cards-grid">
+              <div class="item">
+                <strong>Новая блокировка</strong>
+                <div class="field" style="margin-top:12px;">
+                  <label for="blockDateInput">Дата</label>
+                  <input id="blockDateInput" type="date" />
+                </div>
+                <div class="field">
+                  <label for="blockModeSelect">Режим</label>
+                  <select id="blockModeSelect">
+                    <option value="range">Закрыть промежуток</option>
+                    <option value="day">Закрыть весь день</option>
+                  </select>
+                </div>
+                <div id="blockTimeFields" class="cards-grid" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-top:4px;">
+                  <div class="field" style="margin-top:0;">
+                    <label for="blockStartTimeInput">С</label>
+                    <input id="blockStartTimeInput" type="time" step="1800" value="10:00" />
+                  </div>
+                  <div class="field" style="margin-top:0;">
+                    <label for="blockEndTimeInput">До</label>
+                    <input id="blockEndTimeInput" type="time" step="1800" value="18:00" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="blockReasonInput">Комментарий</label>
+                  <input id="blockReasonInput" type="text" placeholder="Например: выходной, отпуск, личные дела" />
+                </div>
+                <div class="item-actions">
+                  <button class="btn btn-primary" id="saveBlockBtn" type="button">Сохранить блокировку</button>
+                </div>
+              </div>
+              <div>
+                <h3 style="margin-bottom:12px">Текущие блокировки</h3>
+                <div class="list" id="blocksList"></div>
+              </div>
+            </div>
+          </section>
 
-async function confirm(id){
-  await supabaseClient.rpc('confirm_booking',{p_booking_id:id});
-  load();
-}
+          <section class="card section-card" id="today">
+            <div class="section-head">
+              <div>
+                <span class="badge">Записи по дням</span>
+                <h2>Сегодня и завтра</h2>
+              </div>
+            </div>
+            <div class="cards-grid">
+              <div>
+                <h3 style="margin-bottom:12px">Сегодня</h3>
+                <div class="list" id="todayList"></div>
+              </div>
+              <div>
+                <h3 style="margin-bottom:12px">Завтра</h3>
+                <div class="list" id="tomorrowList"></div>
+              </div>
+            </div>
+          </section>
 
-async function cancelBooking(id){
-  await supabaseClient.rpc('delete_booking',{p_booking_id:id});
-  load();
-}
-</script>
+          <section class="card section-card" id="upcoming">
+            <div class="section-head">
+              <div>
+                <span class="badge">Ближайшие слоты</span>
+                <h2>Ближайшие занятые окна</h2>
+              </div>
+              <div class="filters">
+                <span class="chip" id="upcomingCountChip">0 записей</span>
+              </div>
+            </div>
+            <div class="list" id="upcomingList"></div>
+          </section>
+
+          <section class="card section-card" id="pending-reviews">
+            <div class="section-head">
+              <div>
+                <span class="badge">Модерация отзывов</span>
+                <h2>Отзывы на проверке</h2>
+                <p>Новый отзыв сначала приходит сюда. На сайт он выходит только после кнопки «Опубликовать».</p>
+              </div>
+              <div class="filters">
+                <span class="chip" id="pendingCountChip">0 ждут проверки</span>
+              </div>
+            </div>
+            <div class="list" id="pendingReviewsList"></div>
+          </section>
+
+          <section class="card section-card" id="published-reviews">
+            <div class="section-head">
+              <div>
+                <span class="badge">Публичный блок сайта</span>
+                <h2>Опубликованные отзывы</h2>
+                <p>То, что уже видно на сайте. При удалении отзыв исчезнет и из кабинета, и с публичной страницы.</p>
+              </div>
+            </div>
+            <div class="list" id="publishedReviewsList"></div>
+          </section>
+
+          <section class="card section-card" id="help">
+            <div class="section-head">
+              <div>
+                <span class="badge">Подсказка для новичка</span>
+                <h2>Без опыта тоже удобно</h2>
+              </div>
+            </div>
+            <div class="cards-grid">
+              <div class="item">
+                <strong>Если пришла новая запись</strong>
+                <small>Открой блок «Сегодня и завтра» или «Ближайшие записи». Там видно имя, телефон, услугу и кнопку подтверждения.</small>
+              </div>
+              <div class="item">
+                <strong>Если запись ещё не подтверждена</strong>
+                <small>Она всё равно держит время занятым для клиентов. Подтверди её, если всё в порядке, или отмени, если запись неактуальна.</small>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://czyvztajmosnohfuoaic.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_5brh3aCKuaPXoGfGsKa1ng_osxDD_LI';
+    const ADMIN_CONFIG = {
+      pin: '2468',
+      sessionKey: 'dolceVitaAdminUnlockedStandalone'
+    };
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const state = {
+      bookings: [],
+      reviews: [],
+      pendingReviews: [],
+      blocks: [],
+      filters: {
+        dateFrom: '',
+        dateTo: '',
+        status: 'all',
+        search: ''
+      },
+      calendarCursor: (() => {
+        const d = new Date();
+        return { year: d.getFullYear(), month: d.getMonth() };
+      })(),
+      isUnlocked: sessionStorage.getItem(ADMIN_CONFIG.sessionKey) === '1',
+      lastLoadedAt: null
+    };
+
+    const refs = {
+      loginCard: document.getElementById('loginCard'),
+      dashboard: document.getElementById('dashboard'),
+      pinInput: document.getElementById('pinInput'),
+      toastWrap: document.getElementById('toastWrap'),
+      statsGrid: document.getElementById('statsGrid'),
+      updatedAtNote: document.getElementById('updatedAtNote'),
+      todayList: document.getElementById('todayList'),
+      tomorrowList: document.getElementById('tomorrowList'),
+      upcomingList: document.getElementById('upcomingList'),
+      pendingReviewsList: document.getElementById('pendingReviewsList'),
+      publishedReviewsList: document.getElementById('publishedReviewsList'),
+      blocksList: document.getElementById('blocksList'),
+      blockDateInput: document.getElementById('blockDateInput'),
+      blockModeSelect: document.getElementById('blockModeSelect'),
+      blockTimeFields: document.getElementById('blockTimeFields'),
+      blockStartTimeInput: document.getElementById('blockStartTimeInput'),
+      blockEndTimeInput: document.getElementById('blockEndTimeInput'),
+      blockReasonInput: document.getElementById('blockReasonInput'),
+      saveBlockBtn: document.getElementById('saveBlockBtn'),
+      filterDateFrom: document.getElementById('filterDateFrom'),
+      filterDateTo: document.getElementById('filterDateTo'),
+      filterStatus: document.getElementById('filterStatus'),
+      filterSearch: document.getElementById('filterSearch'),
+      filterTodayBtn: document.getElementById('filterTodayBtn'),
+      filterTomorrowBtn: document.getElementById('filterTomorrowBtn'),
+      filterWeekBtn: document.getElementById('filterWeekBtn'),
+      filterResetBtn: document.getElementById('filterResetBtn'),
+      calendarPrevBtn: document.getElementById('calendarPrevBtn'),
+      calendarNextBtn: document.getElementById('calendarNextBtn'),
+      calendarMonthLabel: document.getElementById('calendarMonthLabel'),
+      calendarMiniGrid: document.getElementById('calendarMiniGrid'),
+      upcomingCountChip: document.getElementById('upcomingCountChip'),
+      pendingCountChip: document.getElementById('pendingCountChip'),
+      logoutTopBtn: document.getElementById('logoutTopBtn')
+    };
+
+    function escapeHtml(value='') {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function normalizeTime(value='') {
+      return String(value).slice(0,5);
+    }
+
+    const MOSCOW_TIMEZONE = 'Europe/Moscow';
+
+    function getDatePartsInTimezone(value = new Date(), timeZone = MOSCOW_TIMEZONE) {
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(date);
+      const map = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      if (!map.year || !map.month || !map.day) return null;
+      return { year: map.year, month: map.month, day: map.day };
+    }
+
+    function formatISODate(date, timeZone = MOSCOW_TIMEZONE) {
+      const parts = getDatePartsInTimezone(date, timeZone);
+      return parts ? `${parts.year}-${parts.month}-${parts.day}` : '';
+    }
+
+    function shiftDateByDays(date, days, timeZone = MOSCOW_TIMEZONE) {
+      const parts = getDatePartsInTimezone(date, timeZone);
+      if (!parts) return new Date(date);
+      return new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + days, 12, 0, 0));
+    }
+
+    function formatHumanDate(dateString) {
+      if (!dateString) return 'Без даты';
+      const date = new Date(`${dateString}T12:00:00+03:00`);
+      if (Number.isNaN(date.getTime())) return dateString;
+      return date.toLocaleDateString('ru-RU', { timeZone: MOSCOW_TIMEZONE, day: 'numeric', month: 'long', weekday: 'long' });
+    }
+
+    function formatReviewDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Без даты';
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+    }
+
+    function formatDateTime(value) {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return '';
+      return date.toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+
+    function formatPhone(value='') {
+      const digits = String(value).replace(/\D/g, '');
+      if (digits.length === 11 && digits.startsWith('7')) {
+        return `+7 (${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7,9)}-${digits.slice(9,11)}`;
+      }
+      if (digits.length === 10) {
+        return `+7 (${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6,8)}-${digits.slice(8,10)}`;
+      }
+      return value || 'Телефон не указан';
+    }
+
+    function extractServiceName(value='') {
+      return String(value).replace(/\s+/g,' ').trim();
+    }
+
+    function normalizeBookingStatus(row={}) {
+      const status = String(row.status || row.booking_status || '').toLowerCase().trim();
+      const confirmed = row.is_confirmed === true
+        || row.confirmed === true
+        || row.confirmed_at
+        || ['confirmed', 'approve', 'approved', 'booked'].includes(status);
+      return {
+        status: confirmed ? 'confirmed' : 'pending',
+        is_confirmed: confirmed
+      };
+    }
+
+    function mapBooking(row={}) {
+      const bookingStatus = normalizeBookingStatus(row);
+      return {
+        id: row.id ?? row.booking_id ?? row.uuid ?? row.slot_id ?? `${row.booking_date || row.date || ''}_${normalizeTime(row.booking_time || row.time || '')}`,
+        date: row.booking_date || row.date || '',
+        time: normalizeTime(row.booking_time || row.time || ''),
+        service: row.service ? extractServiceName(row.service) : '',
+        client_name: row.client_name || row.name || 'Без имени',
+        client_phone: row.client_phone || row.phone || '',
+        comment: row.comment || row.booking_comment || '',
+        created_at: row.created_at || null,
+        review_left: row.review_left === true,
+        source: row.source || row.channel || '',
+        status: bookingStatus.status,
+        is_confirmed: bookingStatus.is_confirmed
+      };
+    }
+
+
+    function mapReview(row={}) {
+      const status = String(row.status || '').toLowerCase();
+      const approved = row.is_approved === true || row.approved === true || status === 'approved' || status === 'published';
+      return {
+        id: row.id,
+        client_name: row.client_name || 'Без имени',
+        client_phone: row.client_phone || row.phone || '',
+        review_text: row.review_text || row.text || '',
+        created_at: row.created_at || new Date().toISOString(),
+        status: approved ? 'approved' : 'pending',
+        is_approved: approved
+      };
+    }
+
+    function showToast(message, type='info') {
+      const item = document.createElement('div');
+      item.className = `toast ${type}`;
+      item.textContent = message;
+      refs.toastWrap.appendChild(item);
+      setTimeout(() => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(10px)';
+        setTimeout(() => item.remove(), 220);
+      }, 2600);
+    }
+
+    async function loadBookings() {
+      let rows = [];
+      let lastError = null;
+
+      const direct = await supabaseClient
+        .from('bookings')
+        .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at, review_left, source')
+        .order('booking_date', { ascending: true })
+        .order('booking_time', { ascending: true });
+
+      if (!direct.error) {
+        rows = direct.data || [];
+        lastError = null;
+      } else {
+        lastError = direct.error;
+      }
+
+      if (!rows.length) {
+        const adminRpcNames = ['admin_get_bookings', 'get_admin_bookings', 'get_booked_slots_admin'];
+        for (const rpcName of adminRpcNames) {
+          const rpcResult = await supabaseClient.rpc(rpcName);
+          if (!rpcResult.error) {
+            rows = rpcResult.data || [];
+            lastError = null;
+            break;
+          }
+          lastError = rpcResult.error;
+        }
+      }
+
+      if (!rows.length) {
+        const publicRpc = await supabaseClient.rpc('get_booked_slots');
+        if (!publicRpc.error) {
+          rows = (publicRpc.data || []).map(item => ({
+            ...item,
+            client_name: item.client_name || 'Скрыто',
+            client_phone: item.client_phone || '',
+            comment: item.comment || '',
+            review_left: item.review_left || false,
+            source: item.source || 'public-rpc'
+          }));
+          lastError = null;
+        } else {
+          lastError = publicRpc.error;
+        }
+      }
+
+      if (lastError && !rows.length) throw lastError;
+      state.bookings = rows.map(mapBooking);
+
+      const hiddenFields = state.bookings.length && state.bookings.every(item =>
+        (!item.client_phone && (!item.comment || item.comment === '')) &&
+        (item.client_name === 'Скрыто' || item.client_name === 'Без имени')
+      );
+
+      if (hiddenFields) {
+        showToast('Записи загружены в ограниченном режиме. Для имени, телефона и комментария нужен прямой доступ к таблице bookings или admin RPC.', 'info');
+      }
+    }
+
+    async function loadReviews() {
+      state.pendingReviews = [];
+
+      let moderationRows = [];
+      let publicRows = [];
+      let lastError = null;
+
+      const adminRpcNames = ['admin_get_reviews', 'get_reviews_admin', 'get_reviews_moderation', 'get_reviews_for_admin'];
+      for (const rpcName of adminRpcNames) {
+        const rpcResult = await supabaseClient.rpc(rpcName);
+        if (!rpcResult.error) {
+          moderationRows = rpcResult.data || [];
+          lastError = null;
+          break;
+        }
+        lastError = rpcResult.error;
+      }
+
+      const publicRpc = await supabaseClient.rpc('get_reviews_public');
+      if (!publicRpc.error) {
+        publicRows = publicRpc.data || [];
+      }
+
+      if (!moderationRows.length) {
+        const direct = await supabaseClient
+          .from('reviews')
+          .select('id, booking_id, client_name, client_phone, review_text, is_published, is_approved, published_at, created_at, status')
+          .order('created_at', { ascending: false });
+        if (!direct.error) {
+          moderationRows = direct.data || [];
+          lastError = null;
+        } else if (!publicRows.length) {
+          lastError = direct.error;
+        }
+      }
+
+      if (lastError && !moderationRows.length && !publicRows.length) throw lastError;
+
+      const mappedModeration = moderationRows.map(mapReview);
+      state.pendingReviews = mappedModeration.filter(item => !item.is_approved);
+
+      const approvedFromAdmin = mappedModeration.filter(item => item.is_approved);
+      state.reviews = approvedFromAdmin.length ? approvedFromAdmin : publicRows.map(mapReview);
+    }
+
+    async function loadBlocks() {
+      const direct = await supabaseClient
+        .from('schedule_blocks')
+        .select('id, block_date, start_time, end_time, is_full_day, reason, created_at')
+        .order('block_date', { ascending: true });
+
+      if (!direct.error) {
+        state.blocks = direct.data || [];
+        return;
+      }
+
+      const rpcResult = await supabaseClient.rpc('admin_get_schedule_blocks');
+      if (!rpcResult.error) {
+        state.blocks = rpcResult.data || [];
+        return;
+      }
+
+      console.warn('LOAD BLOCKS WARNING:', direct.error || rpcResult.error);
+      state.blocks = [];
+    }
+
+    function renderBlocks() {
+      if (!refs.blocksList) return;
+      if (!state.blocks.length) {
+        refs.blocksList.innerHTML = '<div class="empty">Пока нет блокировок. Здесь будут выходные, отпуск и закрытые промежутки времени.</div>';
+        return;
+      }
+
+      refs.blocksList.innerHTML = state.blocks.map(block => {
+        const label = block.is_full_day
+          ? `${formatHumanDate(block.block_date)} • весь день закрыт`
+          : `${formatHumanDate(block.block_date)} • ${normalizeTime(block.start_time)}–${normalizeTime(block.end_time)}`;
+        return `
+          <div class="item">
+            <strong>${escapeHtml(label)}</strong>
+            <span>${escapeHtml(block.reason || 'Без комментария')}</span>
+            <div class="item-actions">
+              <button class="btn btn-danger" type="button" data-delete-block="${escapeHtml(block.id)}">Удалить блокировку</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('[data-delete-block]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-block');
+          if (!confirm('Удалить эту блокировку? Слоты снова станут доступны на сайте.')) return;
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Удаляю...';
+          const ok = await deleteBlock(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
+    }
+
+    async function saveBlock() {
+      const blockDate = refs.blockDateInput.value;
+      const mode = refs.blockModeSelect.value;
+      const startTime = refs.blockStartTimeInput.value;
+      const endTime = refs.blockEndTimeInput.value;
+      const reason = refs.blockReasonInput.value.trim();
+
+      if (!blockDate) {
+        showToast('Выбери дату блокировки.', 'error');
+        return false;
+      }
+
+      if (mode === 'range') {
+        if (!startTime || !endTime) {
+          showToast('Укажи начало и конец промежутка.', 'error');
+          return false;
+        }
+        if (startTime >= endTime) {
+          showToast('Время окончания должно быть позже начала.', 'error');
+          return false;
+        }
+      }
+
+      const { data, error } = await supabaseClient.rpc('admin_create_schedule_block', {
+        p_block_date: blockDate,
+        p_start_time: mode === 'day' ? null : startTime,
+        p_end_time: mode === 'day' ? null : endTime,
+        p_is_full_day: mode === 'day',
+        p_reason: reason || null
+      });
+
+      if (error) {
+        console.error(error);
+        showToast(error.message || 'Не удалось сохранить блокировку.', 'error');
+        return false;
+      }
+
+      refs.blockReasonInput.value = '';
+      await Promise.all([loadBookings(), loadBlocks()]);
+      state.lastLoadedAt = new Date().toISOString();
+      renderDashboard();
+      showToast((data && data.message) || 'Блокировка сохранена.', 'success');
+      return true;
+    }
+
+    async function deleteBlock(blockId) {
+      const { data, error } = await supabaseClient.rpc('admin_delete_schedule_block', {
+        p_block_id: blockId
+      });
+      if (error) {
+        console.error(error);
+        showToast(error.message || 'Не удалось удалить блокировку.', 'error');
+        return false;
+      }
+      await Promise.all([loadBookings(), loadBlocks()]);
+      state.lastLoadedAt = new Date().toISOString();
+      renderDashboard();
+      showToast((data && data.message) || 'Блокировка удалена.', 'success');
+      return true;
+    }
+
+    async function approveReview(reviewId) {
+      const normalizedId = String(reviewId || '').trim();
+      if (!normalizedId) return false;
+
+      const updateResult = await supabaseClient
+        .from('reviews')
+        .update({
+          is_approved: true,
+          status: 'approved',
+          published_at: new Date().toISOString()
+        })
+        .eq('id', normalizedId)
+        .select('id, client_name, client_phone, review_text, created_at, status, is_approved')
+        .single();
+
+      let approvedReview = null;
+
+      if (!updateResult.error) {
+        approvedReview = updateResult.data;
+      } else {
+        const rpcNames = ['approve_review', 'publish_review', 'moderate_review_approve'];
+        for (const rpcName of rpcNames) {
+          const rpcResult = await supabaseClient.rpc(rpcName, { p_review_id: normalizedId });
+          if (!rpcResult.error) {
+            approvedReview = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
+            break;
+          }
+        }
+      }
+
+      if (!approvedReview) {
+        showToast('Не удалось опубликовать отзыв. Проверь права в Supabase.', 'error');
+        return false;
+      }
+
+      state.pendingReviews = state.pendingReviews.filter(item => String(item.id) !== normalizedId);
+      state.reviews.unshift(mapReview({ ...approvedReview, status:'approved', is_approved:true }));
+      renderDashboard();
+      showToast('Отзыв опубликован на сайте.', 'success');
+      return true;
+    }
+
+    async function deleteReview(reviewId) {
+      const normalizedId = String(reviewId || '').trim();
+      if (!normalizedId) return false;
+
+      const removeResult = await supabaseClient.from('reviews').delete().eq('id', normalizedId);
+      let removed = !removeResult.error;
+
+      if (!removed) {
+        const rpcNames = ['delete_review', 'remove_review'];
+        for (const rpcName of rpcNames) {
+          const rpcResult = await supabaseClient.rpc(rpcName, { p_review_id: normalizedId });
+          if (!rpcResult.error) {
+            removed = true;
+            break;
+          }
+        }
+      }
+
+      if (!removed) {
+        showToast('Не удалось удалить отзыв. Проверь права delete или RPC.', 'error');
+        return false;
+      }
+
+      state.pendingReviews = state.pendingReviews.filter(item => String(item.id) !== normalizedId);
+      state.reviews = state.reviews.filter(item => String(item.id) !== normalizedId);
+      renderDashboard();
+      showToast('Отзыв удалён.', 'success');
+      return true;
+    }
+
+    function bookingsForDate(dateString) {
+      return state.bookings
+        .filter(item => item.date === dateString && String(item.status || '').toLowerCase() !== 'cancelled')
+        .sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+    }
+
+
+    async function confirmBooking(bookingId) {
+      const normalizedId = String(bookingId || '').trim();
+      if (!normalizedId) return false;
+
+      const payload = {
+        is_confirmed: true,
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString()
+      };
+
+      let confirmedBooking = null;
+      const updateResult = await supabaseClient
+        .from('bookings')
+        .update(payload)
+        .eq('id', normalizedId)
+        .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at')
+        .single();
+
+      if (!updateResult.error) {
+        confirmedBooking = updateResult.data;
+      } else {
+        const rpcVariants = [
+          ['confirm_booking', { p_booking_id: normalizedId }],
+          ['confirm_booking', { booking_id: normalizedId }],
+          ['approve_booking', { p_booking_id: normalizedId }],
+          ['approve_booking', { booking_id: normalizedId }],
+          ['confirm_appointment', { p_booking_id: normalizedId }],
+          ['confirm_appointment', { booking_id: normalizedId }]
+        ];
+
+        for (const [rpcName, params] of rpcVariants) {
+          const rpcResult = await supabaseClient.rpc(rpcName, params);
+          if (!rpcResult.error) {
+            confirmedBooking = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
+            break;
+          }
+        }
+      }
+
+      if (!confirmedBooking) {
+        showToast('Не удалось подтвердить запись. Проверь права update или RPC в Supabase.', 'error');
+        return false;
+      }
+
+      state.bookings = state.bookings.map(item => String(item.id) === normalizedId ? mapBooking({ ...item, ...confirmedBooking, status: 'confirmed', is_confirmed: true }) : item);
+      renderDashboard();
+      showToast('Запись подтверждена. Время и раньше было занято, а теперь отмечено как подтверждённое.', 'success');
+      return true;
+    }
+
+
+    async function saveBookingFields(bookingId) {
+      const normalizedId = String(bookingId || '').trim();
+      if (!normalizedId) return false;
+
+      const commentInput = document.querySelector(`[data-booking-comment-input="${CSS.escape(normalizedId)}"]`);
+      const phoneInput = document.querySelector(`[data-booking-phone-input="${CSS.escape(normalizedId)}"]`);
+      const serviceInput = document.querySelector(`[data-booking-service-input="${CSS.escape(normalizedId)}"]`);
+      const nameInput = document.querySelector(`[data-booking-name-input="${CSS.escape(normalizedId)}"]`);
+
+      if (!commentInput || !phoneInput || !serviceInput || !nameInput) {
+        showToast('Поля редактирования не найдены.', 'error');
+        return false;
+      }
+
+      const payload = {
+        comment: commentInput.value.trim() || null,
+        client_phone: phoneInput.value.trim() || null,
+        service: serviceInput.value.trim() || null,
+        client_name: nameInput.value.trim() || null
+      };
+
+      let updatedBooking = null;
+
+      const directUpdate = await supabaseClient
+        .from('bookings')
+        .update(payload)
+        .eq('id', normalizedId)
+        .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at, review_left')
+        .single();
+
+      if (!directUpdate.error) {
+        updatedBooking = directUpdate.data;
+      } else {
+        const rpcVariants = [
+          ['update_booking_fields', { p_booking_id: normalizedId, p_comment: payload.comment, p_client_phone: payload.client_phone, p_service: payload.service, p_client_name: payload.client_name }],
+          ['edit_booking_fields', { p_booking_id: normalizedId, p_comment: payload.comment, p_client_phone: payload.client_phone, p_service: payload.service, p_client_name: payload.client_name }],
+          ['update_booking_comment', { p_booking_id: normalizedId, p_comment: payload.comment }],
+          ['edit_booking_comment', { p_booking_id: normalizedId, p_comment: payload.comment }]
+        ];
+
+        for (const [rpcName, params] of rpcVariants) {
+          const rpcResult = await supabaseClient.rpc(rpcName, params);
+          if (!rpcResult.error) {
+            updatedBooking = Array.isArray(rpcResult.data) ? rpcResult.data[0] : rpcResult.data;
+            break;
+          }
+        }
+
+        if (updatedBooking && (payload.client_phone !== updatedBooking.client_phone || payload.service !== updatedBooking.service || payload.client_name !== updatedBooking.client_name)) {
+          updatedBooking = { ...updatedBooking, client_phone: payload.client_phone, service: payload.service, comment: payload.comment, client_name: payload.client_name };
+        }
+      }
+
+      if (!updatedBooking) {
+        console.error('Не удалось сохранить изменения');
+        showToast('Не удалось сохранить изменения. Нужен SQL-патч для update_booking_fields.', 'error');
+        return false;
+      }
+
+      state.bookings = state.bookings.map(item =>
+        String(item.id) === normalizedId ? mapBooking({ ...item, ...updatedBooking }) : item
+      );
+
+      renderDashboard();
+      showToast('Изменения сохранены.', 'success');
+      return true;
+    }
+
+
+    async function deleteBooking(bookingId) {
+      const normalizedId = String(bookingId || '').trim();
+      if (!normalizedId) return false;
+
+      let cancelled = false;
+
+      const directUpdate = await supabaseClient
+        .from('bookings')
+        .update({
+          status: 'cancelled',
+          is_confirmed: false,
+          confirmed_at: null
+        })
+        .eq('id', normalizedId)
+        .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at, review_left')
+        .single();
+
+      if (!directUpdate.error) {
+        cancelled = true;
+      } else {
+        const rpcVariants = [
+          ['delete_booking', { p_booking_id: normalizedId }],
+          ['delete_booking', { booking_id: normalizedId }],
+          ['remove_booking', { p_booking_id: normalizedId }],
+          ['remove_booking', { booking_id: normalizedId }],
+          ['delete_appointment', { p_booking_id: normalizedId }],
+          ['delete_appointment', { booking_id: normalizedId }]
+        ];
+
+        for (const [rpcName, params] of rpcVariants) {
+          const rpcResult = await supabaseClient.rpc(rpcName, params);
+          if (!rpcResult.error) {
+            cancelled = true;
+            break;
+          }
+        }
+      }
+
+      if (!cancelled) {
+        showToast('Не удалось отменить запись. Проверь права update или RPC в Supabase.', 'error');
+        return false;
+      }
+
+      state.bookings = state.bookings.map(item =>
+        String(item.id) === normalizedId
+          ? mapBooking({ ...item, status: 'cancelled', is_confirmed: false, confirmed_at: null })
+          : item
+      );
+      renderDashboard();
+      showToast('Запись отменена. Время снова стало свободным для клиентов.', 'success');
+      return true;
+    }
+
+
+    function createBookingMarkup(item) {
+      const service = item.service ? `<small><strong>Услуга:</strong> ${escapeHtml(item.service)}</small>` : '<small><strong>Услуга:</strong> не указана</small>';
+      const clientName = item.client_name ? escapeHtml(item.client_name) : 'Без имени';
+      const clientPhone = item.client_phone ? escapeHtml(formatPhone(item.client_phone)) : 'Телефон не указан';
+      const statusClass = item.is_confirmed ? 'booking-confirmed' : 'booking-pending';
+      const statusText = item.is_confirmed ? 'Подтверждена' : 'Ждёт подтверждения';
+      const statusHint = item.is_confirmed
+        ? 'Клиент подтверждён.'
+        : 'Время уже занято, даже пока запись ещё не подтверждена.';
+      const confirmButton = item.is_confirmed
+        ? ''
+        : `<button class="btn btn-primary" type="button" data-confirm-booking="${escapeHtml(item.id)}">Подтвердить</button>`;
+
+      const commentBlock = `
+        <div class="comment-bubble">
+          <strong>Комментарий клиента</strong>
+          <span>${item.comment ? escapeHtml(item.comment) : 'Комментарий не указан'}</span>
+        </div>
+      `;
+
+      const editBlock = `
+        <div class="comment-bubble" style="background:rgba(255,255,255,.86);margin-top:10px;">
+          <strong>Редактирование записи</strong>
+          <div class="field" style="margin-top:10px;">
+            <label style="font-size:13px;font-weight:700;color:var(--heading);">Имя клиента</label>
+            <input data-booking-name-input="${escapeHtml(item.id)}" type="text" value="${escapeHtml(item.client_name || '')}" placeholder="Имя клиента" />
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label style="font-size:13px;font-weight:700;color:var(--heading);">Телефон клиента</label>
+            <input data-booking-phone-input="${escapeHtml(item.id)}" type="text" value="${escapeHtml(item.client_phone || '')}" placeholder="Телефон клиента" />
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label style="font-size:13px;font-weight:700;color:var(--heading);">Услуга</label>
+            <input data-booking-service-input="${escapeHtml(item.id)}" type="text" value="${escapeHtml(item.service || '')}" placeholder="Услуга" />
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label style="font-size:13px;font-weight:700;color:var(--heading);">Комментарий</label>
+            <textarea data-booking-comment-input="${escapeHtml(item.id)}" rows="4" placeholder="Добавь или измени комментарий клиента...">${escapeHtml(item.comment || '')}</textarea>
+          </div>
+          <div class="item-actions" style="margin-top:10px;">
+            <button class="btn btn-secondary" type="button" data-save-booking-fields="${escapeHtml(item.id)}">Сохранить изменения</button>
+          </div>
+        </div>
+      `;
+
+      const pills = `
+        <div class="pill-row">
+          ${item.review_left ? '<span class="pill">Отзыв оставлен</span>' : '<span class="pill">Отзыв ещё не оставлен</span>'}
+          ${item.source ? `<span class="pill">Источник: ${escapeHtml(item.source)}</span>` : ''}
+        </div>
+      `;
+
+      return `
+        <div class="item">
+          <strong>${escapeHtml(formatHumanDate(item.date))} • ${escapeHtml(item.time)}</strong>
+          <div class="meta-grid">
+            <span><strong>Клиент:</strong> ${clientName}</span>
+            <span><strong>Телефон:</strong> ${clientPhone}</span>
+            ${service}
+          </div>
+          ${pills}
+          ${commentBlock}
+          ${editBlock}
+          <span class="status ${statusClass}">${statusText}</span>
+          <small>${statusHint}</small>
+          <div class="item-actions">
+            ${confirmButton}
+            <button class="btn btn-danger" type="button" data-delete-booking="${escapeHtml(item.id)}">Отменить запись</button>
+          </div>
+        </div>
+      `;
+    }
+
+
+    function createReviewMarkup(item, mode='pending') {
+      const phone = item.client_phone ? formatPhone(item.client_phone) : 'Телефон не указан';
+      return `
+        <div class="item">
+          <strong>${escapeHtml(item.client_name)} • ${escapeHtml(formatReviewDate(item.created_at))}</strong>
+          <span>${escapeHtml(phone)}</span>
+          <small>${escapeHtml(item.review_text)}</small>
+          <span class="status ${mode === 'pending' ? 'pending' : 'approved'}">${mode === 'pending' ? 'Ждёт проверки' : 'Опубликован'}</span>
+          <div class="item-actions">
+            ${mode === 'pending' ? `<button class="btn btn-primary" type="button" data-approve-review="${escapeHtml(item.id)}">Опубликовать</button>` : ''}
+            <button class="btn btn-danger" type="button" data-delete-review="${escapeHtml(item.id)}">Удалить</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderList(target, html, emptyText) {
+      target.innerHTML = html || `<div class="empty">${escapeHtml(emptyText)}</div>`;
+    }
+
+    function exportCsv(filename, rows) {
+      const csv = rows.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function exportBookingsCsv() {
+      const rows = [['Дата', 'Время', 'Статус', 'Имя', 'Телефон', 'Услуга']];
+      [...state.bookings]
+        .sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+        .forEach(item => rows.push([
+          item.date,
+          item.time,
+          item.is_confirmed ? 'confirmed' : 'pending',
+          item.client_name || '',
+          item.client_phone || '',
+          item.service || ''
+        ]));
+      exportCsv('bookings.csv', rows);
+      showToast('Файл с записями скачан.', 'success');
+    }
+
+    function exportReviewsCsv() {
+      const rows = [['Статус', 'Имя', 'Телефон', 'Отзыв', 'Дата']];
+      [...state.pendingReviews, ...state.reviews].forEach(item => {
+        rows.push([item.is_approved ? 'published' : 'pending', item.client_name, item.client_phone || '', item.review_text, item.created_at]);
+      });
+      exportCsv('reviews.csv', rows);
+      showToast('Файл с отзывами скачан.', 'success');
+    }
+
+
+    function getFilteredBookings() {
+      const search = state.filters.search.trim().toLowerCase();
+      return state.bookings.filter(item => {
+        if (String(item.status || '').toLowerCase() === 'cancelled') return false;
+        if (state.filters.dateFrom && item.date < state.filters.dateFrom) return false;
+        if (state.filters.dateTo && item.date > state.filters.dateTo) return false;
+        if (state.filters.status === 'pending' && item.is_confirmed) return false;
+        if (state.filters.status === 'confirmed' && !item.is_confirmed) return false;
+        if (search) {
+          const haystack = [item.client_name, item.client_phone, item.service, item.comment].join(' ').toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+    }
+
+    function syncFilterInputs() {
+      refs.filterDateFrom.value = state.filters.dateFrom;
+      refs.filterDateTo.value = state.filters.dateTo;
+      refs.filterStatus.value = state.filters.status;
+      refs.filterSearch.value = state.filters.search;
+    }
+
+    function renderMiniCalendar() {
+      const weekdays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+      const cursor = state.calendarCursor;
+      const first = new Date(cursor.year, cursor.month, 1);
+      const last = new Date(cursor.year, cursor.month + 1, 0);
+      const firstWeekday = (first.getDay() + 6) % 7;
+      const monthLabel = first.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+      refs.calendarMonthLabel.textContent = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
+
+      const bookingCountByDate = state.bookings.reduce((acc, item) => {
+        if (String(item.status || '').toLowerCase() === 'cancelled') return acc;
+        acc[item.date] = (acc[item.date] || 0) + 1;
+        return acc;
+      }, {});
+
+      const cells = [];
+      weekdays.forEach(day => cells.push(`<div class="calendar-mini-weekday">${day}</div>`));
+
+      for (let i = 0; i < firstWeekday; i++) {
+        cells.push('<div class="calendar-mini-day is-muted"></div>');
+      }
+
+      for (let day = 1; day <= last.getDate(); day++) {
+        const dateObj = new Date(cursor.year, cursor.month, day);
+        const iso = formatISODate(dateObj, MOSCOW_TIMEZONE);
+        const count = bookingCountByDate[iso] || 0;
+        const selected = state.filters.dateFrom === iso && state.filters.dateTo === iso;
+        cells.push(`
+          <button class="calendar-mini-day ${count ? 'has-bookings' : ''} ${selected ? 'is-selected' : ''}" type="button" data-calendar-date="${iso}">
+            <span class="calendar-mini-num">${day}</span>
+            <span class="calendar-mini-count">${count ? count + ' запис.' : 'свободно'}</span>
+          </button>
+        `);
+      }
+
+      refs.calendarMiniGrid.innerHTML = cells.join('');
+      document.querySelectorAll('[data-calendar-date]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const iso = btn.getAttribute('data-calendar-date');
+          state.filters.dateFrom = iso;
+          state.filters.dateTo = iso;
+          syncFilterInputs();
+          renderDashboard();
+        });
+      });
+    }
+
+    function renderDashboard() {
+      const now = new Date();
+      const today = formatISODate(now, MOSCOW_TIMEZONE);
+      const tomorrow = formatISODate(shiftDateByDays(now, 1, MOSCOW_TIMEZONE), MOSCOW_TIMEZONE);
+
+      const filteredBookings = getFilteredBookings();
+      const todayBookings = filteredBookings.filter(item => item.date === today).sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+      const tomorrowBookings = filteredBookings.filter(item => item.date === tomorrow).sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+      const upcoming = [...filteredBookings]
+        .filter(item => item.date >= today)
+        .sort((a,b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+        .slice(0, 12);
+
+      const pendingBookings = filteredBookings.filter(item => !item.is_confirmed);
+      refs.statsGrid.innerHTML = `
+        <div class="stat"><strong>${todayBookings.length}</strong><span>записей сегодня</span></div>
+        <div class="stat"><strong>${tomorrowBookings.length}</strong><span>записей завтра</span></div>
+        <div class="stat"><strong>${pendingBookings.length}</strong><span>ждут подтверждения</span></div>
+        <div class="stat"><strong>${state.pendingReviews.length}</strong><span>отзывов ждут проверки</span></div>
+      `;
+
+      refs.updatedAtNote.textContent = state.lastLoadedAt
+        ? `Данные обновлены: ${formatDateTime(state.lastLoadedAt)}`
+        : 'Данные ещё не загружены.';
+
+      refs.upcomingCountChip.textContent = `${upcoming.length} ближайших записей`;
+      renderMiniCalendar();
+      refs.pendingCountChip.textContent = `${state.pendingReviews.length} ждут проверки`;
+
+      renderList(refs.todayList, todayBookings.map(createBookingMarkup).join(''), 'На сегодня записей пока нет.');
+      renderList(refs.tomorrowList, tomorrowBookings.map(createBookingMarkup).join(''), 'На завтра записей пока нет.');
+      renderList(refs.upcomingList, upcoming.map(createBookingMarkup).join(''), 'Будущих записей пока нет.');
+      renderList(refs.pendingReviewsList, state.pendingReviews.map(item => createReviewMarkup(item, 'pending')).join(''), 'Сейчас нет отзывов, ожидающих проверки.');
+      renderList(refs.publishedReviewsList, state.reviews.slice(0, 12).map(item => createReviewMarkup(item, 'approved')).join(''), 'Опубликованных отзывов пока нет.');
+      renderBlocks();
+
+      document.querySelectorAll('[data-confirm-booking]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-confirm-booking');
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Подтверждаю...';
+          const ok = await confirmBooking(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-delete-booking]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-booking');
+          if (!confirm('Удалить эту запись? После удаления это время снова станет свободным на сайте.')) return;
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Удаляю...';
+          const ok = await deleteBooking(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-save-booking-fields]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-save-booking-fields');
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Сохраняю...';
+          const ok = await saveBookingFields(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-approve-review]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-approve-review');
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Публикую...';
+          const ok = await approveReview(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-delete-review]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-delete-review');
+          if (!confirm('Удалить этот отзыв? Он исчезнет и из кабинета, и с сайта.')) return;
+          btn.disabled = true;
+          const oldText = btn.textContent;
+          btn.textContent = 'Удаляю...';
+          const ok = await deleteReview(id);
+          if (!ok) {
+            btn.disabled = false;
+            btn.textContent = oldText;
+          }
+        });
+      });
+    }
+
+    async function refreshData(showMessage=true) {
+      try {
+        await Promise.all([loadBookings(), loadReviews(), loadBlocks()]);
+        state.lastLoadedAt = new Date().toISOString();
+        renderDashboard();
+        if (showMessage) showToast('Данные обновлены.', 'success');
+      } catch (error) {
+        console.error('ADMIN DASHBOARD LOAD ERROR:', error);
+        showToast(error?.message || 'Не удалось загрузить данные. Проверь соединение или права в Supabase.', 'error');
+      }
+    }
+
+    function setUnlocked(isUnlocked) {
+      state.isUnlocked = isUnlocked;
+      sessionStorage.setItem(ADMIN_CONFIG.sessionKey, isUnlocked ? '1' : '0');
+      refs.dashboard.hidden = !isUnlocked;
+      refs.logoutTopBtn.hidden = !isUnlocked;
+      refs.loginCard.hidden = isUnlocked;
+      if (isUnlocked) {
+        refreshData(false);
+      }
+    }
+
+    document.getElementById('loginBtn').addEventListener('click', () => {
+      const pin = refs.pinInput.value.trim();
+      if (pin !== ADMIN_CONFIG.pin) {
+        showToast('Неверный PIN.', 'error');
+        refs.pinInput.focus();
+        refs.pinInput.select();
+        return;
+      }
+      setUnlocked(true);
+      showToast('Вход выполнен.', 'success');
+    });
+
+    refs.pinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginBtn').click();
+    });
+
+
+    function applyQuickRange(type) {
+      const now = new Date();
+      if (type === 'today') {
+        const iso = formatISODate(now, MOSCOW_TIMEZONE);
+        state.filters.dateFrom = iso;
+        state.filters.dateTo = iso;
+      } else if (type === 'tomorrow') {
+        const iso = formatISODate(shiftDateByDays(now, 1, MOSCOW_TIMEZONE), MOSCOW_TIMEZONE);
+        state.filters.dateFrom = iso;
+        state.filters.dateTo = iso;
+      } else if (type === 'week') {
+        state.filters.dateFrom = formatISODate(now, MOSCOW_TIMEZONE);
+        state.filters.dateTo = formatISODate(shiftDateByDays(now, 6, MOSCOW_TIMEZONE), MOSCOW_TIMEZONE);
+      } else {
+        state.filters.dateFrom = '';
+        state.filters.dateTo = '';
+        state.filters.status = 'all';
+        state.filters.search = '';
+      }
+      syncFilterInputs();
+      renderDashboard();
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', () => refreshData(true));
+    document.getElementById('exportBookingsBtn').addEventListener('click', exportBookingsCsv);
+    document.getElementById('exportReviewsBtn').addEventListener('click', exportReviewsCsv);
+
+    refs.filterDateFrom.addEventListener('change', () => {
+      state.filters.dateFrom = refs.filterDateFrom.value;
+      renderDashboard();
+    });
+    refs.filterDateTo.addEventListener('change', () => {
+      state.filters.dateTo = refs.filterDateTo.value;
+      renderDashboard();
+    });
+    refs.filterStatus.addEventListener('change', () => {
+      state.filters.status = refs.filterStatus.value;
+      renderDashboard();
+    });
+    refs.filterSearch.addEventListener('input', () => {
+      state.filters.search = refs.filterSearch.value;
+      renderDashboard();
+    });
+    refs.filterTodayBtn.addEventListener('click', () => applyQuickRange('today'));
+    refs.filterTomorrowBtn.addEventListener('click', () => applyQuickRange('tomorrow'));
+    refs.filterWeekBtn.addEventListener('click', () => applyQuickRange('week'));
+    refs.filterResetBtn.addEventListener('click', () => applyQuickRange('reset'));
+    refs.calendarPrevBtn.addEventListener('click', () => {
+      if (state.calendarCursor.month === 0) {
+        state.calendarCursor.month = 11;
+        state.calendarCursor.year -= 1;
+      } else {
+        state.calendarCursor.month -= 1;
+      }
+      renderMiniCalendar();
+    });
+    refs.calendarNextBtn.addEventListener('click', () => {
+      if (state.calendarCursor.month === 11) {
+        state.calendarCursor.month = 0;
+        state.calendarCursor.year += 1;
+      } else {
+        state.calendarCursor.month += 1;
+      }
+      renderMiniCalendar();
+    });
+
+    refs.blockModeSelect.addEventListener('change', () => {
+      refs.blockTimeFields.style.display = refs.blockModeSelect.value === 'day' ? 'none' : 'grid';
+    });
+    refs.saveBlockBtn.addEventListener('click', saveBlock);
+    refs.blockDateInput.value = formatISODate(new Date(), MOSCOW_TIMEZONE);
+    refs.blockTimeFields.style.display = refs.blockModeSelect.value === 'day' ? 'none' : 'grid';
+    refs.logoutTopBtn.addEventListener('click', () => {
+      setUnlocked(false);
+      refs.pinInput.value = '';
+      refs.pinInput.focus();
+      showToast('Вы вышли из кабинета.', 'info');
+    });
+
+    if (state.isUnlocked) {
+      setUnlocked(true);
+    } else {
+      refs.pinInput.focus();
+    }
+  </script>
 </body>
 </html>
