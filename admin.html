@@ -1389,9 +1389,24 @@
     }
 
     async function loadBlocks() {
-      const { data, error } = await supabaseClient.rpc('admin_get_schedule_blocks');
-      if (error) throw error;
-      state.blocks = data || [];
+      const direct = await supabaseClient
+        .from('schedule_blocks')
+        .select('id, block_date, start_time, end_time, is_full_day, reason, created_at')
+        .order('block_date', { ascending: true });
+
+      if (!direct.error) {
+        state.blocks = direct.data || [];
+        return;
+      }
+
+      const rpcResult = await supabaseClient.rpc('admin_get_schedule_blocks');
+      if (!rpcResult.error) {
+        state.blocks = rpcResult.data || [];
+        return;
+      }
+
+      console.warn('LOAD BLOCKS WARNING:', direct.error || rpcResult.error);
+      state.blocks = [];
     }
 
     function renderBlocks() {
@@ -2041,8 +2056,8 @@
         renderDashboard();
         if (showMessage) showToast('Данные обновлены.', 'success');
       } catch (error) {
-        console.error(error);
-        showToast('Не удалось загрузить данные. Проверь соединение или права в Supabase.', 'error');
+        console.error('ADMIN DASHBOARD LOAD ERROR:', error);
+        showToast(error?.message || 'Не удалось загрузить данные. Проверь соединение или права в Supabase.', 'error');
       }
     }
 
