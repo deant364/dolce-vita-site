@@ -1921,51 +1921,85 @@
           : item
       );
       renderDashboard();
-      showToast('Запись отменена и перенесена в историю отменённых. Время снова стало свободным для клиентов.', 'success');
+      showToast('Запись отменена. Время снова стало свободным для клиентов.', 'success');
       return true;
     }
 
 
 
-    async function purgeCancelledBooking(bookingId) {
+    async function purgeCancelledBooking(bookingId, options = {}) {
       const normalizedId = String(bookingId || '').trim();
+      const silent = options && options.silent === true;
+      const skipRefresh = options && options.skipRefresh === true;
       if (!normalizedId) return false;
 
       let removed = false;
+      let lastError = null;
 
-      const directDelete = await supabaseClient
-        .from('bookings')
-        .delete()
-        .eq('id', normalizedId)
-        .eq('status', 'cancelled');
+      const rpcVariants = [
+        ['purge_cancelled_booking', { p_booking_id: normalizedId }],
+        ['purge_cancelled_booking', { booking_id: normalizedId }],
+        ['admin_purge_cancelled_booking', { p_booking_id: normalizedId }],
+        ['admin_purge_cancelled_booking', { booking_id: normalizedId }]
+      ];
 
-      if (!directDelete.error) {
-        removed = true;
-      } else {
-        const rpcVariants = [
-          ['purge_cancelled_booking', { p_booking_id: normalizedId }],
-          ['purge_cancelled_booking', { booking_id: normalizedId }],
-          ['admin_purge_cancelled_booking', { p_booking_id: normalizedId }],
-          ['admin_purge_cancelled_booking', { booking_id: normalizedId }]
-        ];
-
-        for (const [rpcName, params] of rpcVariants) {
-          const rpcResult = await supabaseClient.rpc(rpcName, params);
-          if (!rpcResult.error) {
+      for (const [rpcName, params] of rpcVariants) {
+        const rpcResult = await supabaseClient.rpc(rpcName, params);
+        if (!rpcResult.error) {
+          if (rpcResult.data === true || rpcResult.data === null || typeof rpcResult.data === 'undefined') {
             removed = true;
+            lastError = null;
             break;
           }
+          if (Array.isArray(rpcResult.data) && rpcResult.data.length > 0) {
+            removed = true;
+            lastError = null;
+            break;
+          }
+          if (rpcResult.data && typeof rpcResult.data === 'object') {
+            removed = true;
+            lastError = null;
+            break;
+          }
+        }
+        lastError = rpcResult.error || lastError;
+      }
+
+      if (!removed) {
+        const directDelete = await supabaseClient
+          .from('bookings')
+          .delete()
+          .eq('id', normalizedId)
+          .eq('status', 'cancelled')
+          .select('id');
+
+        if (!directDelete.error && Array.isArray(directDelete.data) && directDelete.data.length > 0) {
+          removed = true;
+          lastError = null;
+        } else {
+          lastError = directDelete.error || lastError;
         }
       }
 
       if (!removed) {
-        showToast('Не удалось удалить запись из истории. Проверь SQL-патч в Supabase.', 'error');
+        console.error('PURGE CANCELLED BOOKING ERROR:', lastError);
+        if (!silent) {
+          showToast('Не удалось удалить запись из истории. Нужен рабочий RPC purge_cancelled_booking или право delete для cancelled.', 'error');
+        }
         return false;
       }
 
       state.bookings = state.bookings.filter(item => String(item.id) !== normalizedId);
+
+      if (!skipRefresh) {
+        await loadBookings();
+        state.lastLoadedAt = new Date().toISOString();
+      }
+
       renderDashboard();
-      showToast('Запись удалена из истории.', 'success');
+      if (!silent) {
+        showToast('Запись удалена из истории.', 'success');
+      }
       return true;
     }
 
@@ -1978,35 +2012,39 @@
 
       let removed = false;
 
-      const directDelete = await supabaseClient
-        .from('bookings')
-        .delete()
-        .eq('status', 'cancelled');
+      const rpcVariants = [
+        ['purge_all_cancelled_bookings', {}],
+        ['admin_purge_all_cancelled_bookings', {}],
+        ['clear_cancelled_bookings_history', {}]
+      ];
 
-      if (!directDelete.error) {
-        removed = true;
-      } else {
-        const rpcVariants = [
-          ['purge_all_cancelled_bookings', {}],
-          ['admin_purge_all_cancelled_bookings', {}],
-          ['clear_cancelled_bookings_history', {}]
-        ];
-
-        for (const [rpcName, params] of rpcVariants) {
-          const rpcResult = await supabaseClient.rpc(rpcName, params);
-          if (!rpcResult.error) {
-            removed = true;
-            break;
-          }
+      for (const [rpcName, params] of rpcVariants) {
+        const rpcResult = await supabaseClient.rpc(rpcName, params);
+        if (!rpcResult.error) {
+          removed = true;
+          break;
         }
       }
 
       if (!removed) {
-        showToast('Не удалось очистить историю отменённых. Проверь SQL-патч в Supabase.', 'error');
+        let removedCount = 0;
+        for (const id of cancelledIds) {
+          const ok = await purgeCancelledBooking(id, { silent: true, skipRefresh: true });
+          if (ok) removedCount += 1;
+        }
+        removed = removedCount === cancelledIds.length;
+      }
+
+      if (!removed) {
+        showToast('Не удалось полностью очистить историю отменённых. Проверь RPC purge_cancelled_booking в Supabase.', 'error');
+        await loadBookings();
+        state.lastLoadedAt = new Date().toISOString();
+        renderDashboard();
         return false;
       }
 
-      state.bookings = state.bookings.filter(item => String(item.status || '').toLowerCase() !== 'cancelled');
+      await loadBookings();
+      state.lastLoadedAt = new Date().toISOString();
       renderDashboard();
       showToast('История отменённых записей очищена.', 'success');
       return true;
@@ -2126,7 +2164,7 @@
         .forEach(item => rows.push([
           item.date,
           item.time,
-          item.status || (item.is_confirmed ? 'confirmed' : 'pending'),
+          item.is_confirmed ? 'confirmed' : 'pending',
           item.client_name || '',
           item.client_phone || '',
           item.service || ''
@@ -2249,7 +2287,6 @@
       renderList(refs.upcomingList, upcoming.map(createBookingMarkup).join(''), 'Будущих записей пока нет.');
       renderList(refs.pendingReviewsList, state.pendingReviews.map(item => createReviewMarkup(item, 'pending')).join(''), 'Сейчас нет отзывов, ожидающих проверки.');
       renderList(refs.publishedReviewsList, state.reviews.slice(0, 12).map(item => createReviewMarkup(item, 'approved')).join(''), 'Опубликованных отзывов пока нет.');
-      renderCancelledBookings();
       renderBlocks();
 
       document.querySelectorAll('[data-confirm-booking]').forEach(btn => {
@@ -2435,6 +2472,20 @@
       refs.blockTimeFields.style.display = refs.blockModeSelect.value === 'day' ? 'none' : 'grid';
     });
     refs.saveBlockBtn.addEventListener('click', saveBlock);
+    refs.clearCancelledBtn.addEventListener('click', async () => {
+      if (!getCancelledBookings().length) {
+        showToast('История отменённых уже пустая.', 'info');
+        return;
+      }
+      if (!confirm('Очистить всю историю отменённых записей без возможности восстановления?')) return;
+      refs.clearCancelledBtn.disabled = true;
+      const oldText = refs.clearCancelledBtn.textContent;
+      refs.clearCancelledBtn.textContent = 'Очищаю...';
+      const ok = await purgeAllCancelledBookings();
+      refs.clearCancelledBtn.disabled = false;
+      refs.clearCancelledBtn.textContent = oldText;
+      if (!ok) return;
+    });
     refs.blockDateInput.value = formatISODate(new Date(), MOSCOW_TIMEZONE);
     refs.blockTimeFields.style.display = refs.blockModeSelect.value === 'day' ? 'none' : 'grid';
     refs.logoutTopBtn.addEventListener('click', () => {
