@@ -1281,9 +1281,31 @@
         || row.confirmed === true
         || row.confirmed_at
         || ['confirmed', 'approve', 'approved', 'booked'].includes(status);
+
+      if (status === 'cancelled') {
+        return {
+          status: 'cancelled',
+          is_confirmed: false
+        };
+      }
+
+      if (status === 'completed') {
+        return {
+          status: 'completed',
+          is_confirmed: true
+        };
+      }
+
+      if (confirmed) {
+        return {
+          status: 'confirmed',
+          is_confirmed: true
+        };
+      }
+
       return {
-        status: confirmed ? 'confirmed' : 'pending',
-        is_confirmed: confirmed
+        status: 'pending',
+        is_confirmed: false
       };
     }
 
@@ -1895,7 +1917,7 @@
 
       state.bookings = state.bookings.map(item =>
         String(item.id) === normalizedId
-          ? mapBooking({ ...item, status: 'cancelled', is_confirmed: false, confirmed_at: null })
+          ? { ...item, status: 'cancelled', is_confirmed: false, confirmed_at: null }
           : item
       );
       renderDashboard();
