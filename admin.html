@@ -1311,36 +1311,63 @@
     }
 
     async function loadBookings() {
-      const rpcNames = ['admin_get_bookings', 'get_admin_bookings', 'get_booked_slots_admin', 'get_booked_slots'];
       let rows = [];
       let lastError = null;
 
-      for (const rpcName of rpcNames) {
-        const rpcResult = await supabaseClient.rpc(rpcName);
-        if (!rpcResult.error) {
-          rows = rpcResult.data || [];
-          lastError = null;
-          break;
-        }
-        lastError = rpcResult.error;
+      const direct = await supabaseClient
+        .from('bookings')
+        .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at, review_left, source')
+        .order('booking_date', { ascending: true })
+        .order('booking_time', { ascending: true });
+
+      if (!direct.error) {
+        rows = direct.data || [];
+        lastError = null;
+      } else {
+        lastError = direct.error;
       }
 
       if (!rows.length) {
-        const direct = await supabaseClient
-          .from('bookings')
-          .select('id, booking_date, booking_time, client_name, client_phone, service, comment, status, is_confirmed, confirmed_at, created_at')
-          .order('booking_date', { ascending: true })
-          .order('booking_time', { ascending: true });
-        if (!direct.error) {
-          rows = direct.data || [];
+        const adminRpcNames = ['admin_get_bookings', 'get_admin_bookings', 'get_booked_slots_admin'];
+        for (const rpcName of adminRpcNames) {
+          const rpcResult = await supabaseClient.rpc(rpcName);
+          if (!rpcResult.error) {
+            rows = rpcResult.data || [];
+            lastError = null;
+            break;
+          }
+          lastError = rpcResult.error;
+        }
+      }
+
+      if (!rows.length) {
+        const publicRpc = await supabaseClient.rpc('get_booked_slots');
+        if (!publicRpc.error) {
+          rows = (publicRpc.data || []).map(item => ({
+            ...item,
+            client_name: item.client_name || 'Скрыто',
+            client_phone: item.client_phone || '',
+            comment: item.comment || '',
+            review_left: item.review_left || false,
+            source: item.source || 'public-rpc'
+          }));
           lastError = null;
         } else {
-          lastError = direct.error;
+          lastError = publicRpc.error;
         }
       }
 
       if (lastError && !rows.length) throw lastError;
       state.bookings = rows.map(mapBooking);
+
+      const hiddenFields = state.bookings.length && state.bookings.every(item =>
+        (!item.client_phone && (!item.comment || item.comment === '')) &&
+        (item.client_name === 'Скрыто' || item.client_name === 'Без имени')
+      );
+
+      if (hiddenFields) {
+        showToast('Записи загружены в ограниченном режиме. Для имени, телефона и комментария нужен прямой доступ к таблице bookings или admin RPC.', 'info');
+      }
     }
 
     async function loadReviews() {
