@@ -4861,7 +4861,22 @@ nav.top-nav a {
 
       if (error) {
         console.error('SUPABASE BOOKING RPC ERROR:', error);
-        showToast(error.message || 'Не удалось сохранить запись. Проверьте данные и попробуйте ещё раз.', 'error');
+        const rawMessage = String(error.message || '');
+        const rawCode = String(error.code || '');
+        const normalizedMessage = rawMessage.toLowerCase();
+        const isTakenSlotError = rawCode === '23505'
+          || normalizedMessage.includes('bookings_unique_slot_idx')
+          || normalizedMessage.includes('duplicate key value violates unique constraint')
+          || normalizedMessage.includes('already occupied')
+          || normalizedMessage.includes('already booked')
+          || normalizedMessage.includes('уже занято');
+
+        showToast(
+          isTakenSlotError
+            ? 'Это время уже успели занять. Выберите соседний слот или другой день.'
+            : (error.message || 'Не удалось сохранить запись. Проверьте данные и попробуйте ещё раз.'),
+          'error'
+        );
         await initialLoad();
         return false;
       }
