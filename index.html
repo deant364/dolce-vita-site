@@ -4817,6 +4817,13 @@ nav.top-nav a {
     document.getElementById('headerBookBtn').addEventListener('click', () => { trackEvent('open_calendar', { source: 'header' }); scrollToBookingSlots(); });
     document.getElementById('footerBookBtn')?.addEventListener('click', () => { trackEvent('open_calendar', { source: 'footer' }); scrollToBookingSlots(); });
 
+    refs.topNav?.querySelector('a[href="#calendar"]')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      trackEvent('open_calendar', { source: 'top-nav' });
+      scrollToBookingSlots();
+      if (history.replaceState) history.replaceState(null, '', '#calendar');
+    });
+
     document.getElementById('prevBtn').addEventListener('click', () => {
       if (state.view === 'month') {
         state.currentDate.setMonth(state.currentDate.getMonth() - 1);
